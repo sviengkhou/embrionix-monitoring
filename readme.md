@@ -17,7 +17,7 @@ Quickstart:
 1. Edit the targets section of prometheus.yml file to match the ip of your machine in the docker realm, and the port (Given as argument when executing emDeviceMonitor)
 1. Build Prometheus image: sudo docker build . -t emprometheus
 1. Start Prometheus:  sudo docker run -d --name emprometheus -p 9090:9090 emprometheus:latest
-1. Start emDeviceMonitor.py: python3.7 emDeviceMonitor.py --ip <embox6 ip> --port <promtheus interface port>  (There is no verbose for this script, it just.. starts)
+1. Start emDeviceMonitor.py: python3.7 emDeviceMonitor.py --ip embox6_ip --port promtheus_interface_port  (There is no verbose for this script, it just.. starts)
 1. Connect to prometheus target page on: http://127.0.0.1:9090/targets, verify that your target is up
 1. Open Graphana on 127.0.0.1:3000 with a web browser (Default user/password is admin/admin)
 1. In the Grafana left hand menu, select configuration and data source. 
