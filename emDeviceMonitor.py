@@ -48,8 +48,8 @@ def monitor_flow(ip, uuid, pkt_cnt_gauge, seq_err_gauge):
   try:
     diag = get_flow_diag(ip, uuid)
     if diag is not None:
-      pkt_cnt_gauge.set(diag["rtp_stream_info"][0]["status"]["pkt_cnt"])
-      seq_err_gauge.set(diag["rtp_stream_info"][0]["status"]["sequence_error"])
+      pkt_cnt_gauge.set(0)
+      seq_err_gauge.set(0)
   except:
     pass
 
@@ -62,12 +62,18 @@ def monitor_sfp_port(ip, portnum, temperature_gauge, vcc_gauge, txpwr_gauge, rxp
       txpwr_gauge.set(cfg["sfp_ddm_info"]["tx_power"]["current"])
       rxpwr_gauge.set(cfg["sfp_ddm_info"]["rx_power"]["current"])
   except:
-    pass
+      temperature_gauge.set(0)
+      vcc_gauge.set(0)
+      txpwr_gauge.set(0)
+      rxpwr_gauge.set(0)
 
 def monitor_ptp(ip, gauge):
   try:
     info = get_ptp_main_page(ip)
-    gauge.set(info['status'])
+    if info is not None:
+      gauge.set(info['status'])
+    else:
+      gauge.set(0)
   except:
     gauge.set(0)
 
