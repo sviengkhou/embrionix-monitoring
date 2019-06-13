@@ -16,7 +16,7 @@ def process_request(t):
 
 
 def get_flow_diag(ip, flow_uuid):
-  r = requests.get("http://" + ip + "/emsfp/node/v1/self/diag/flow/" + flow_uuid)
+  r = requests.get("http://" + ip + "/emsfp/node/v1/self/diag/flow/" + flow_uuid, timeout=2)
   if r.status_code == 200:
     return r.json()
   else:
@@ -24,21 +24,21 @@ def get_flow_diag(ip, flow_uuid):
 
 
 def get_flow_config(ip, flow_uuid):
-  r = requests.get("http://" + ip + "/emsfp/node/v1/flows/" + flow_uuid)
+  r = requests.get("http://" + ip + "/emsfp/node/v1/flows/" + flow_uuid, timeout=2)
   if r.status_code == 200:
     return r.json()
   else:
     return None
 
 def get_ptp_main_page(ip):
-  r = requests.get("http://" + ip + "/emsfp/node/v1/refclk")
+  r = requests.get("http://" + ip + "/emsfp/node/v1/refclk", timeout=2)
   if r.status_code == 200:
     return r.json()
   else:
     return None
     
 def get_port_state(ip, portnum):
-  r = requests.get("http://" + ip + "/emsfp/node/v1/port/" + str(portnum))
+  r = requests.get("http://" + ip + "/emsfp/node/v1/port/" + str(portnum), timeout=2)
   if r.status_code == 200:
     return r.json()
   else:
