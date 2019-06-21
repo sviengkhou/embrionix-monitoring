@@ -45,14 +45,24 @@ def get_port_state(ip, portnum):
     return None
 
 def monitor_flow(ip, uuid, pkt_cnt_gauge, seq_err_gauge):
-  try:
-    diag = get_flow_diag(ip, uuid)
-    if diag is not None:
-      pkt_cnt_gauge.set(diag["rtp_stream_info"][0]["status"]["pkt_cnt"])
+  cfg = get_flow_config(ip, uuid)
+  diag = get_flow_diag(ip, uuid)
+  #try:
+  if isinstance(cfg["network"], (list,)):
+    pkt_cnt_gauge.set(cfg["network"][0]["pkt_cnt"])
+  else:
+    pkt_cnt_gauge.set(cfg["network"]["pkt_cnt"])
+  
+  if "rtp_stream_info" in diag:
+    if isinstance(diag["rtp_stream_info"], (list,)):
       seq_err_gauge.set(diag["rtp_stream_info"][0]["status"]["sequence_error"])
-  except:
-      pkt_cnt_gauge.set(-1)
-      seq_err_gauge.set(-1)
+    else:
+      seq_err_gauge.set(diag["rtp_stream_info"]["status"]["sequence_error"])
+  else:
+    seq_err_gauge.set(-1)
+#  except:
+#      pkt_cnt_gauge.set(-1)
+#      seq_err_gauge.set(-1)
 
 def monitor_sfp_port(ip, portnum, temperature_gauge, vcc_gauge, txpwr_gauge, rxpwr_gauge):
   try:
@@ -149,6 +159,7 @@ if __name__ == '__main__':
   
   # Generate some requests.
   while True:
+    start_time = time.time()
     get_response_time(args.ip, ping_latency_gauge)
     monitor_sfp_port(args.ip, 3, sfp_p3_temperature, sfp_p3_vcc, sfp_p3_txpwr, sfp_p3_rxpwr)
     monitor_sfp_port(args.ip, 5, sfp_p5_temperature, sfp_p5_vcc, sfp_p5_txpwr, sfp_p5_rxpwr)
@@ -161,4 +172,5 @@ if __name__ == '__main__':
     monitor_flow(args.ip, "305f66a2-9910-11e5-8894-feff819cdc9f", flow_305_pkt_cnt, flow_305_seq_err)
     monitor_flow(args.ip, "404f66a2-9910-11e5-8894-feff819cdc9f", flow_404_pkt_cnt, flow_404_seq_err)
     monitor_flow(args.ip, "405f66a2-9910-11e5-8894-feff819cdc9f", flow_405_pkt_cnt, flow_405_seq_err)
+    api_read_time.set(time.time() - start_time)
     time.sleep(interval)

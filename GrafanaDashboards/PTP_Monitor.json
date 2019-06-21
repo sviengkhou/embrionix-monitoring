@@ -15,7 +15,7 @@
   "editable": true,
   "gnetId": null,
   "graphTooltip": 0,
-  "id": 2,
+  "id": 4,
   "links": [],
   "panels": [
     {
@@ -327,12 +327,6 @@
           "format": "time_series",
           "intervalFactor": 1,
           "refId": "A"
-        },
-        {
-          "expr": "sfp_temperature_p5",
-          "format": "time_series",
-          "intervalFactor": 1,
-          "refId": "B"
         }
       ],
       "thresholds": [],
