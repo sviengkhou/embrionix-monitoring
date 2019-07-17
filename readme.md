@@ -14,10 +14,12 @@ Prerequisites:
 
 Quickstart:
 1. Start Grafana Docker image: sudo docker run -d --name grafana -p 3000:3000 grafana/grafana
-1. Edit the targets section of prometheus.yml file to match the ip of your machine in the docker realm, and the port (Given as argument when executing emDeviceMonitor)
-1. Build Prometheus image: sudo docker build . -t emprometheus
+1. Build Prometheus image: cd PrometheusMonitoring/server && sudo docker build . -t emprometheus
 1. Start Prometheus:  sudo docker run -d --name emprometheus -p 9090:9090 emprometheus:latest
-1. Start emDeviceMonitor.py: python3.7 emDeviceMonitor.py --ip embox6_ip --port promtheus_interface_port, ping latency is reported every ticks
+1. Start a device monitor script, they are found under PrometheusMonitoring/devicemonitor, use emBox6Monitor.py for an EmBox6 and emBox3_2110sfp_Monitor.py for EmBox3 or other 2110 device, syntax for both is: python emDeviceMonitor.py --ip embox6_ip --port promtheus_interface_port
+1. Copy file PrometheusMonitoring/server/sample_monitor.json, fill in information using your host ip on docker and the port specified on the monitor script.
+1. Add your new file by copying it to the target container: docker cp <new_file.json> emprometheus:/home/to_monitor
+1. Repeat the last two steps for each devices you want to monitor
 1. Connect to prometheus target page on: http://127.0.0.1:9090/targets, verify that your target is up
 1. Open Graphana on 127.0.0.1:3000 with a web browser (Default user/password is admin/admin)
 1. In the Grafana left hand menu, select configuration and data source. 
