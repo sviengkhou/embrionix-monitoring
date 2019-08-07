@@ -10,35 +10,50 @@ import ping
 REQUEST_TIME = Summary('request_processing_seconds', 'Time spent processing request')
 
 def get_flow_diag(ip, flow_uuid):
-  r = requests.get("http://" + ip + "/emsfp/node/v1/self/diag/flow/" + flow_uuid, timeout=2)
+  try:
+    r = requests.get("http://" + ip + "/emsfp/node/v1/self/diag/flow/" + flow_uuid, timeout=2)
+  except:
+    return None
   if r.status_code == 200:
     return r.json()
   else:
     return None
 
 def get_ptp_diag(ip):
-  r = requests.get("http://" + ip + "/emsfp/node/v1/self/diag/refclk", timeout=2)
+  try:
+    r = requests.get("http://" + ip + "/emsfp/node/v1/self/diag/refclk", timeout=2)
+  except:
+    return None
   if r.status_code == 200:
     return r.json()
   else:
     return None
 
 def get_flow_config(ip, flow_uuid):
-  r = requests.get("http://" + ip + "/emsfp/node/v1/flows/" + flow_uuid, timeout=2)
+  try:
+    r = requests.get("http://" + ip + "/emsfp/node/v1/flows/" + flow_uuid, timeout=2)
+  except:
+    return None
   if r.status_code == 200:
     return r.json()
   else:
     return None
 
 def get_ptp_main_page(ip):
-  r = requests.get("http://" + ip + "/emsfp/node/v1/refclk", timeout=2)
+  try:
+    r = requests.get("http://" + ip + "/emsfp/node/v1/refclk", timeout=2)
+  except:
+    return None
   if r.status_code == 200:
     return r.json()
   else:
     return None
     
 def get_port_state(ip, portnum):
-  r = requests.get("http://" + ip + "/emsfp/node/v1/port/" + str(portnum), timeout=2)
+  try:
+    r = requests.get("http://" + ip + "/emsfp/node/v1/port/" + str(portnum), timeout=2)
+  except:
+    return None
   if r.status_code == 200:
     return r.json()
   else:
@@ -47,22 +62,25 @@ def get_port_state(ip, portnum):
 def monitor_flow(ip, uuid, pkt_cnt_gauge, seq_err_gauge):
   cfg = get_flow_config(ip, uuid)
   diag = get_flow_diag(ip, uuid)
-  #try:
-  if isinstance(cfg["network"], (list,)):
-    pkt_cnt_gauge.set(cfg["network"][0]["pkt_cnt"])
-  else:
-    pkt_cnt_gauge.set(cfg["network"]["pkt_cnt"])
   
-  if "rtp_stream_info" in diag:
-    if isinstance(diag["rtp_stream_info"], (list,)):
-      seq_err_gauge.set(diag["rtp_stream_info"][0]["status"]["sequence_error"])
+  if cfg is not None:
+    if isinstance(cfg["network"], (list,)):
+      pkt_cnt_gauge.set(cfg["network"][0]["pkt_cnt"])
     else:
-      seq_err_gauge.set(diag["rtp_stream_info"]["status"]["sequence_error"])
+      pkt_cnt_gauge.set(cfg["network"]["pkt_cnt"])
+  else:
+    pkt_cnt_gauge.set(-1)
+  
+  if diag is not None:
+    if "rtp_stream_info" in diag:
+      if isinstance(diag["rtp_stream_info"], (list,)):
+        seq_err_gauge.set(diag["rtp_stream_info"][0]["status"]["sequence_error"])
+      else:
+        seq_err_gauge.set(diag["rtp_stream_info"]["status"]["sequence_error"])
+    else:
+      seq_err_gauge.set(-1)
   else:
     seq_err_gauge.set(-1)
-#  except:
-#      pkt_cnt_gauge.set(-1)
-#      seq_err_gauge.set(-1)
 
 def monitor_sfp_port(ip, portnum, temperature_gauge, vcc_gauge, txpwr_gauge, rxpwr_gauge):
   try:
