@@ -71,14 +71,11 @@ def monitor_flow(ip, uuid, pkt_cnt_gauge, seq_err_gauge):
   else:
     pkt_cnt_gauge.set(-1)
   
-  if diag is not None:
-    if "rtp_stream_info" in diag:
-      if isinstance(diag["rtp_stream_info"], (list,)):
-        seq_err_gauge.set(diag["rtp_stream_info"][0]["status"]["sequence_error"])
-      else:
-        seq_err_gauge.set(diag["rtp_stream_info"]["status"]["sequence_error"])
+  if diag is not None and "rtp_stream_info" in diag:
+    if isinstance(diag["rtp_stream_info"], (list,)):
+      seq_err_gauge.set(diag["rtp_stream_info"][0]["status"]["sequence_error"])
     else:
-      seq_err_gauge.set(-1)
+      seq_err_gauge.set(diag["rtp_stream_info"]["status"]["sequence_error"])
   else:
     seq_err_gauge.set(-1)
 
