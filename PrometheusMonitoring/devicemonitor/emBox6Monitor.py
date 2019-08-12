@@ -1,17 +1,108 @@
 from prometheus_client import start_http_server, Summary, Gauge, Enum, Info
+from prettytable import PrettyTable
+from enum import Enum
 import random
 import time
 import requests
 import argparse
 import ping
+import prettytable
 
 
 # Create a metric to track time spent and requests made.
 REQUEST_TIME = Summary('request_processing_seconds', 'Time spent processing request')
 
-def get_flow_diag(ip, flow_uuid):
+class FlowDir(Enum):
+  RX = 1  # Encap Flow...
+  TX = 2  # Decap flow...
+
+
+class FlowType(Enum):
+  UNKNOWN    = 0
+  VIDEO_2110 = 1
+  AUDIO_2110 = 2
+  ANCIL_2110 = 3
+
+
+class EmFlow:
+  def __init__(self, mgmt_ip, uuid):
+    self.dir = FlowDir.RX
+    self.type = FlowType.VIDEO_2110
+    self.uuid = uuid
+    self.mgmt_ip = mgmt_ip
+    self.isQuad = False
+    self.pkt_cnt = None
+    self.seq_errs = None
+    
+    self._check_if_quad()
+    self._get_direction()
+    self._get_type()
+      
+  def _check_if_quad(self):
+    cfg = self.get_flow_config()
+    if isinstance(cfg["network"], (list,)):
+      self.isQuad = True
+    else:
+      self.isQuad = False
+  
+  def _get_direction(self):
+    if self.isQuad:
+      self.dir = FlowDir.TX  # Quads are automatically decapsulators
+    else:
+      cfg = self.get_flow_config()
+      if "pkt_filter_src_ip" in cfg["network"]:
+        self.dir = FlowDir.TX  # If we have netfilters settings, we are on a decap flow...
+      else:
+        self.dir = FlowDir.RX
+        
+  def _get_type(self):
+    cfg = self.get_flow_config()
+    if cfg["format"]["format_type"] == "video":
+      self.type = FlowType.VIDEO_2110
+    elif cfg["format"]["format_type"] == "audio":
+      self.type = FlowType.AUDIO_2110
+    elif cfg["format"]["format_type"] == "ancillary":
+      self.type = FlowType.ANCIL_2110
+    else:
+      self.type = FlowType.UNKNOWN
+      
+  def get_flow_config(self):
+    try:
+      r = requests.get("http://" + self.mgmt_ip + "/emsfp/node/v1/flows/" + self.uuid, timeout=2)
+    except:
+      return None
+    if r.status_code == 200:
+      return r.json()
+    else:
+      return None
+      
+  def get_flow_diag(self):
+    try:
+      r = requests.get("http://" + self.mgmt_ip + "/emsfp/node/v1/self/diag/flow/" + self.uuid, timeout=2)
+    except:
+      return None
+    if r.status_code == 200:
+      return r.json()
+    else:
+      return None
+      
+  def update_pkt_cnt(self):
+    cfg = self.get_flow_config()
+    if self.isQuad:
+      # TODO: Support all quad flows...
+      self.pkt_cnt.set(cfg["network"][0]["pkt_cnt"])
+    else:
+      self.pkt_cnt.set(cfg["network"]["pkt_cnt"])
+
+  def update_seq_err(self):
+    if self.seq_errs is not None:
+      diag = self.get_flow_diag()
+      # TODO: Support all quad flows...
+      self.seq_errs.set(diag["rtp_stream_info"][0]["status"]["sequence_error"])
+
+def get_flows_list(ip):
   try:
-    r = requests.get("http://" + ip + "/emsfp/node/v1/self/diag/flow/" + flow_uuid, timeout=2)
+    r = requests.get("http://" + ip + "/emsfp/node/v1/flows", timeout=2)
   except:
     return None
   if r.status_code == 200:
@@ -22,16 +113,6 @@ def get_flow_diag(ip, flow_uuid):
 def get_ptp_diag(ip):
   try:
     r = requests.get("http://" + ip + "/emsfp/node/v1/self/diag/refclk", timeout=2)
-  except:
-    return None
-  if r.status_code == 200:
-    return r.json()
-  else:
-    return None
-
-def get_flow_config(ip, flow_uuid):
-  try:
-    r = requests.get("http://" + ip + "/emsfp/node/v1/flows/" + flow_uuid, timeout=2)
   except:
     return None
   if r.status_code == 200:
@@ -58,26 +139,6 @@ def get_port_state(ip, portnum):
     return r.json()
   else:
     return None
-
-def monitor_flow(ip, uuid, pkt_cnt_gauge, seq_err_gauge):
-  cfg = get_flow_config(ip, uuid)
-  diag = get_flow_diag(ip, uuid)
-  
-  if cfg is not None:
-    if isinstance(cfg["network"], (list,)):
-      pkt_cnt_gauge.set(cfg["network"][0]["pkt_cnt"])
-    else:
-      pkt_cnt_gauge.set(cfg["network"]["pkt_cnt"])
-  else:
-    pkt_cnt_gauge.set(-1)
-  
-  if diag is not None and "rtp_stream_info" in diag:
-    if isinstance(diag["rtp_stream_info"], (list,)):
-      seq_err_gauge.set(diag["rtp_stream_info"][0]["status"]["sequence_error"])
-    else:
-      seq_err_gauge.set(diag["rtp_stream_info"]["status"]["sequence_error"])
-  else:
-    seq_err_gauge.set(-1)
 
 def monitor_sfp_port(ip, portnum, temperature_gauge, vcc_gauge, txpwr_gauge, rxpwr_gauge):
   try:
@@ -131,9 +192,12 @@ if __name__ == '__main__':
   args = parser.parse_args()
 
   interval = 2  # loop delay in seconds
+  
   # Start up the server to expose the metrics.
+  print("Starting Server...")
   start_http_server(int(args.port))
   
+  print("Init. Gauges...")
   i = Info('target_info', 'Information about the Embrionix device')
   i.info({'ip': args.ip, 'fw_desc': 'desc...', 'fw_tag': 'tag...', 'fw_crc': 'crc...'})
   
@@ -154,23 +218,25 @@ if __name__ == '__main__':
   sfp_p5_txpwr = Gauge('sfp_txpwr_p5', 'SFP Tx Power')
   sfp_p5_rxpwr = Gauge('sfp_rxpwr_p5', 'SFP Rx Power')
   
-  flow_104_pkt_cnt = Gauge('pkt_cnt_104', 'Current packet count')
-  flow_105_pkt_cnt = Gauge('pkt_cnt_105', 'Current packet count')
-  flow_204_pkt_cnt = Gauge('pkt_cnt_204', 'Current packet count')
-  flow_205_pkt_cnt = Gauge('pkt_cnt_205', 'Current packet count')
-  flow_304_pkt_cnt = Gauge('pkt_cnt_304', 'Current packet count')
-  flow_305_pkt_cnt = Gauge('pkt_cnt_305', 'Current packet count')
-  flow_404_pkt_cnt = Gauge('pkt_cnt_404', 'Current packet count')
-  flow_405_pkt_cnt = Gauge('pkt_cnt_405', 'Current packet count')
-
-  flow_104_seq_err = Gauge('seq_err_104', 'Sequence errors')
-  flow_105_seq_err = Gauge('seq_err_105', 'Sequence errors')
-  flow_204_seq_err = Gauge('seq_err_204', 'Sequence errors')
-  flow_205_seq_err = Gauge('seq_err_205', 'Sequence errors')
-  flow_304_seq_err = Gauge('seq_err_304', 'Sequence errors')
-  flow_305_seq_err = Gauge('seq_err_305', 'Sequence errors')
-  flow_404_seq_err = Gauge('seq_err_404', 'Sequence errors')
-  flow_405_seq_err = Gauge('seq_err_405', 'Sequence errors')
+  print("Scanning Flows...")
+  table = PrettyTable()
+  table.field_names = ["UUID", "Type", "Direction"]
+  uuid_list = get_flows_list(args.ip)
+  flows = []
+  
+  for uuid in uuid_list:
+    newFlow = EmFlow(args.ip, uuid.replace("/",""))
+    newFlow.pkt_cnt = Gauge('pkt_cnt_' + newFlow.uuid[0:3], 'Packet Count')
+    if newFlow.dir == FlowDir.TX:
+      newFlow.seq_errs = Gauge('seq_errs_' + newFlow.uuid[0:3], 'Packet Count')
+    
+    flows.append(newFlow)
+    table.add_row([newFlow.uuid, newFlow.type.name, newFlow.dir.name])
+  
+  print("Discovered flows:")
+  print(str(table))
+  
+  print("Starting main loop...")
   
   # Generate some requests.
   while True:
@@ -179,13 +245,10 @@ if __name__ == '__main__':
     monitor_sfp_port(args.ip, 3, sfp_p3_temperature, sfp_p3_vcc, sfp_p3_txpwr, sfp_p3_rxpwr)
     monitor_sfp_port(args.ip, 5, sfp_p5_temperature, sfp_p5_vcc, sfp_p5_txpwr, sfp_p5_rxpwr)
     monitor_ptp(args.ip, ptp_state, ptp_offset_from_master, ptp_mean_delay)
-    monitor_flow(args.ip, "104f66a2-9910-11e5-8894-feff819cdc9f", flow_104_pkt_cnt, flow_104_seq_err)
-    monitor_flow(args.ip, "105f66a2-9910-11e5-8894-feff819cdc9f", flow_105_pkt_cnt, flow_105_seq_err)
-    monitor_flow(args.ip, "204f66a2-9910-11e5-8894-feff819cdc9f", flow_204_pkt_cnt, flow_204_seq_err)
-    monitor_flow(args.ip, "205f66a2-9910-11e5-8894-feff819cdc9f", flow_205_pkt_cnt, flow_205_seq_err)
-    monitor_flow(args.ip, "304f66a2-9910-11e5-8894-feff819cdc9f", flow_304_pkt_cnt, flow_304_seq_err)
-    monitor_flow(args.ip, "305f66a2-9910-11e5-8894-feff819cdc9f", flow_305_pkt_cnt, flow_305_seq_err)
-    monitor_flow(args.ip, "404f66a2-9910-11e5-8894-feff819cdc9f", flow_404_pkt_cnt, flow_404_seq_err)
-    monitor_flow(args.ip, "405f66a2-9910-11e5-8894-feff819cdc9f", flow_405_pkt_cnt, flow_405_seq_err)
+
+    for flow in flows:
+      flow.update_pkt_cnt()
+      flow.update_seq_err()
+
     api_read_time.set(time.time() - start_time)
     time.sleep(interval)
