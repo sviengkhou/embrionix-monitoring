@@ -25,15 +25,21 @@ class FlowType(Enum):
 
 
 class EmFlow:
-  def __init__(self, mgmt_ip, uuid):
+  def __init__(self, mgmt_ip, uuid, flowIndex, channel):
     self.dir = FlowDir.RX
     self.type = FlowType.VIDEO_2110
     self.uuid = uuid
     self.mgmt_ip = mgmt_ip
     self.isQuad = False
+    self.isPrimary = False
     self.pkt_cnt = None
     self.seq_errs = None
-    
+    self.channel = channel
+
+    # Primary/Secondary flow detection, cannot find a better way to do it...
+    if flowIndex % 2 == 0:
+      self.isPrimary = True
+      
     self._check_if_quad()
     self._get_direction()
     self._get_type()
@@ -99,6 +105,7 @@ class EmFlow:
       diag = self.get_flow_diag()
       # TODO: Support all quad flows...
       self.seq_errs.set(diag["rtp_stream_info"][0]["status"]["sequence_error"])
+
 
 def get_flows_list(ip):
   try:
@@ -220,19 +227,22 @@ if __name__ == '__main__':
   
   print("Scanning Flows...")
   table = PrettyTable()
-  table.field_names = ["UUID", "Type", "Direction"]
+  table.field_names = ["UUID", "Type", "Dir", "Redundancy", "Chan"]
   uuid_list = get_flows_list(args.ip)
   flows = []
+  channel = 1  # 1 Based channel, to be consistent with device ports numbering...
   
-  for uuid in uuid_list:
-    newFlow = EmFlow(args.ip, uuid.replace("/",""))
-    newFlow.pkt_cnt = Gauge('pkt_cnt_' + newFlow.uuid[0:3], 'Packet Count')
+  for i, uuid in enumerate(uuid_list):
+    newFlow = EmFlow(args.ip, uuid.replace("/",""), i, channel)
+      
+    newFlow.pkt_cnt = Gauge('ch' + str(newFlow.channel) + '_' + newFlow.type.name + ('_prim' if newFlow.isPrimary else '_sec') + newFlow.uuid[0:3] + '_pkt_cnt', 'Packet Count')
     if newFlow.dir == FlowDir.TX:
       newFlow.seq_errs = Gauge('seq_errs_' + newFlow.uuid[0:3], 'Packet Count')
-    
     flows.append(newFlow)
-    table.add_row([newFlow.uuid, newFlow.type.name, newFlow.dir.name])
-  
+    table.add_row([newFlow.uuid, newFlow.type.name, newFlow.dir.name, "Primary" if newFlow.isPrimary else "Secondary", str(channel)])
+    if newFlow.isPrimary is False and newFlow.type == FlowType.ANCIL_2110:
+      channel += 1
+
   print("Discovered flows:")
   print(str(table))
   
