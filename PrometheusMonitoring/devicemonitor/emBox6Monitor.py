@@ -234,10 +234,20 @@ if __name__ == '__main__':
   
   for i, uuid in enumerate(uuid_list):
     newFlow = EmFlow(args.ip, uuid.replace("/",""), i, channel)
+    
+    pkt_cnt_gauge_name = ""
+    seq_err_gauge_name = ""
+    
+    if newFlow.type == FlowType.AUDIO_2110:
+      pkt_cnt_gauge_name = 'ch' + str(newFlow.channel) + '_' + newFlow.type.name + "_" + str(newFlow.uuid[1]) + ('_prim' if newFlow.isPrimary else '_sec') + '_pkt_cnt'
+      seq_err_gauge_name = 'ch' + str(newFlow.channel) + '_' + newFlow.type.name + "_" + str(newFlow.uuid[1]) + ('_prim' if newFlow.isPrimary else '_sec') + '_seq_err'
+    else:
+      pkt_cnt_gauge_name = 'ch' + str(newFlow.channel) + '_' + newFlow.type.name + ('_prim' if newFlow.isPrimary else '_sec') + '_pkt_cnt'
+      seq_err_gauge_name = 'ch' + str(newFlow.channel) + '_' + newFlow.type.name + ('_prim' if newFlow.isPrimary else '_sec') + '_seq_err'
       
-    newFlow.pkt_cnt = Gauge('ch' + str(newFlow.channel) + '_' + newFlow.type.name + ('_prim' if newFlow.isPrimary else '_sec') + newFlow.uuid[0:3] + '_pkt_cnt', 'Packet Count')
+    newFlow.pkt_cnt = Gauge(pkt_cnt_gauge_name, 'Packet Count')
     if newFlow.dir == FlowDir.TX:
-      newFlow.seq_errs = Gauge('seq_errs_' + newFlow.uuid[0:3], 'Packet Count')
+      newFlow.seq_errs = Gauge(seq_err_gauge_name, 'Packet Count')
     flows.append(newFlow)
     table.add_row([newFlow.uuid, newFlow.type.name, newFlow.dir.name, "Primary" if newFlow.isPrimary else "Secondary", str(channel)])
     if newFlow.isPrimary is False and newFlow.type == FlowType.ANCIL_2110:
