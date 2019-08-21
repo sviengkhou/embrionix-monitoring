@@ -94,17 +94,26 @@ class EmFlow:
       
   def update_pkt_cnt(self):
     cfg = self.get_flow_config()
-    if self.isQuad:
-      # TODO: Support all quad flows...
-      self.pkt_cnt.set(cfg["network"][0]["pkt_cnt"])
+    if cfg is not None:
+      try:  # We can get text values such as N/A when a cleanswitch is pending.
+        if self.isQuad:
+          # TODO: Support all quad flows...
+          self.pkt_cnt.set(cfg["network"][0]["pkt_cnt"])
+        else:
+          self.pkt_cnt.set(cfg["network"]["pkt_cnt"])
+      except:
+        self.pkt_cnt.set(-1)
     else:
-      self.pkt_cnt.set(cfg["network"]["pkt_cnt"])
+      self.pkt_cnt.set(-1)
 
   def update_seq_err(self):
     if self.seq_errs is not None:
       diag = self.get_flow_diag()
-      # TODO: Support all quad flows...
-      self.seq_errs.set(diag["rtp_stream_info"][0]["status"]["sequence_error"])
+      if diag is not None:
+        # TODO: Support all quad flows...
+        self.seq_errs.set(diag["rtp_stream_info"][0]["status"]["sequence_error"])
+      else:
+        self.seq_errs.set(-1)
 
 
 def get_flows_list(ip):
