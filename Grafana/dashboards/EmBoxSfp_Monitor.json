@@ -15,113 +15,23 @@
   "editable": true,
   "gnetId": null,
   "graphTooltip": 0,
-  "id": 4,
+  "id": 5,
   "links": [],
   "panels": [
     {
-      "cacheTimeout": null,
+      "aliasColors": {},
+      "bars": false,
+      "dashLength": 10,
+      "dashes": false,
       "datasource": "Prometheus",
+      "fill": 1,
       "gridPos": {
-        "h": 4,
-        "w": 24,
+        "h": 8,
+        "w": 12,
         "x": 0,
         "y": 0
       },
-      "id": 4,
-      "links": [],
-      "options": {
-        "displayMode": "basic",
-        "fieldOptions": {
-          "calcs": [
-            "last"
-          ],
-          "defaults": {
-            "max": 3,
-            "min": 0,
-            "title": ""
-          },
-          "mappings": [],
-          "override": {},
-          "thresholds": [
-            {
-              "color": "red",
-              "index": 0,
-              "value": null
-            },
-            {
-              "color": "green",
-              "index": 1,
-              "value": 2.5
-            }
-          ],
-          "values": false
-        },
-        "orientation": "vertical"
-      },
-      "pluginVersion": "6.2.2",
-      "targets": [
-        {
-          "expr": "ptp_status",
-          "format": "time_series",
-          "instant": true,
-          "intervalFactor": 1,
-          "legendFormat": "",
-          "refId": "A"
-        }
-      ],
-      "timeFrom": null,
-      "timeShift": null,
-      "title": "PTP Status",
-      "type": "bargauge"
-    },
-    {
-      "alert": {
-        "conditions": [
-          {
-            "evaluator": {
-              "params": [
-                3
-              ],
-              "type": "lt"
-            },
-            "operator": {
-              "type": "and"
-            },
-            "query": {
-              "params": [
-                "A",
-                "5m",
-                "now"
-              ]
-            },
-            "reducer": {
-              "params": [],
-              "type": "min"
-            },
-            "type": "query"
-          }
-        ],
-        "executionErrorState": "alerting",
-        "for": "15s",
-        "frequency": "15s",
-        "handler": 1,
-        "name": "PTP Status History alert",
-        "noDataState": "no_data",
-        "notifications": []
-      },
-      "aliasColors": {},
-      "bars": false,
-      "dashLength": 10,
-      "dashes": false,
-      "fill": 1,
-      "gridPos": {
-        "h": 7,
-        "w": 24,
-        "x": 0,
-        "y": 4
-      },
-      "id": 8,
-      "interval": "",
+      "id": 16,
       "legend": {
         "avg": false,
         "current": false,
@@ -146,100 +56,7 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "ptp_status",
-          "format": "time_series",
-          "instant": false,
-          "intervalFactor": 1,
-          "refId": "A"
-        }
-      ],
-      "thresholds": [
-        {
-          "colorMode": "critical",
-          "fill": true,
-          "line": true,
-          "op": "lt",
-          "value": 3
-        }
-      ],
-      "timeFrom": null,
-      "timeRegions": [],
-      "timeShift": null,
-      "title": "PTP Status History",
-      "tooltip": {
-        "shared": true,
-        "sort": 0,
-        "value_type": "individual"
-      },
-      "type": "graph",
-      "xaxis": {
-        "buckets": null,
-        "mode": "time",
-        "name": null,
-        "show": true,
-        "values": []
-      },
-      "yaxes": [
-        {
-          "format": "short",
-          "label": null,
-          "logBase": 1,
-          "max": null,
-          "min": null,
-          "show": true
-        },
-        {
-          "format": "short",
-          "label": null,
-          "logBase": 1,
-          "max": null,
-          "min": null,
-          "show": true
-        }
-      ],
-      "yaxis": {
-        "align": false,
-        "alignLevel": null
-      }
-    },
-    {
-      "aliasColors": {},
-      "bars": false,
-      "dashLength": 10,
-      "dashes": false,
-      "fill": 1,
-      "gridPos": {
-        "h": 7,
-        "w": 10,
-        "x": 0,
-        "y": 11
-      },
-      "id": 20,
-      "legend": {
-        "avg": false,
-        "current": false,
-        "max": false,
-        "min": false,
-        "show": true,
-        "total": false,
-        "values": false
-      },
-      "lines": true,
-      "linewidth": 1,
-      "links": [],
-      "nullPointMode": "null",
-      "options": {},
-      "percentage": false,
-      "pointradius": 2,
-      "points": false,
-      "renderer": "flot",
-      "seriesOverrides": [],
-      "spaceLength": 10,
-      "stack": false,
-      "steppedLine": false,
-      "targets": [
-        {
-          "expr": "ptp_offset_from_master",
+          "expr": "{__name__=~\"sfp_rxpwr_p[0-9]\"}",
           "format": "time_series",
           "intervalFactor": 1,
           "refId": "A"
@@ -249,7 +66,7 @@
       "timeFrom": null,
       "timeRegions": [],
       "timeShift": null,
-      "title": "PTP Offset From Master",
+      "title": "RxPower",
       "tooltip": {
         "shared": true,
         "sort": 0,
@@ -291,12 +108,184 @@
       "bars": false,
       "dashLength": 10,
       "dashes": false,
+      "datasource": "Prometheus",
       "fill": 1,
       "gridPos": {
-        "h": 7,
-        "w": 10,
-        "x": 10,
-        "y": 11
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 0
+      },
+      "id": 14,
+      "legend": {
+        "avg": false,
+        "current": false,
+        "max": false,
+        "min": false,
+        "show": true,
+        "total": false,
+        "values": false
+      },
+      "lines": true,
+      "linewidth": 1,
+      "links": [],
+      "nullPointMode": "null",
+      "options": {},
+      "percentage": false,
+      "pointradius": 2,
+      "points": false,
+      "renderer": "flot",
+      "seriesOverrides": [],
+      "spaceLength": 10,
+      "stack": false,
+      "steppedLine": false,
+      "targets": [
+        {
+          "expr": "{__name__=~\"sfp_txpwr_p[0-9]\"}",
+          "format": "time_series",
+          "intervalFactor": 1,
+          "refId": "A"
+        }
+      ],
+      "thresholds": [],
+      "timeFrom": null,
+      "timeRegions": [],
+      "timeShift": null,
+      "title": "Tx Power",
+      "tooltip": {
+        "shared": true,
+        "sort": 0,
+        "value_type": "individual"
+      },
+      "type": "graph",
+      "xaxis": {
+        "buckets": null,
+        "mode": "time",
+        "name": null,
+        "show": true,
+        "values": []
+      },
+      "yaxes": [
+        {
+          "format": "short",
+          "label": null,
+          "logBase": 1,
+          "max": null,
+          "min": null,
+          "show": true
+        },
+        {
+          "format": "short",
+          "label": null,
+          "logBase": 1,
+          "max": null,
+          "min": null,
+          "show": true
+        }
+      ],
+      "yaxis": {
+        "align": false,
+        "alignLevel": null
+      }
+    },
+    {
+      "aliasColors": {},
+      "bars": false,
+      "dashLength": 10,
+      "dashes": false,
+      "datasource": "Prometheus",
+      "fill": 1,
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 8
+      },
+      "id": 12,
+      "interval": "2s",
+      "legend": {
+        "avg": false,
+        "current": false,
+        "max": false,
+        "min": false,
+        "show": true,
+        "total": false,
+        "values": false
+      },
+      "lines": true,
+      "linewidth": 1,
+      "links": [],
+      "nullPointMode": "null",
+      "options": {},
+      "percentage": false,
+      "pointradius": 2,
+      "points": false,
+      "renderer": "flot",
+      "seriesOverrides": [],
+      "spaceLength": 10,
+      "stack": false,
+      "steppedLine": false,
+      "targets": [
+        {
+          "expr": "{__name__=~\"sfp_vcc_p[0-9]\"}",
+          "format": "time_series",
+          "intervalFactor": 1,
+          "refId": "A"
+        }
+      ],
+      "thresholds": [],
+      "timeFrom": null,
+      "timeRegions": [],
+      "timeShift": null,
+      "title": "VCC",
+      "tooltip": {
+        "shared": true,
+        "sort": 0,
+        "value_type": "individual"
+      },
+      "type": "graph",
+      "xaxis": {
+        "buckets": null,
+        "mode": "time",
+        "name": null,
+        "show": true,
+        "values": []
+      },
+      "yaxes": [
+        {
+          "format": "short",
+          "label": null,
+          "logBase": 1,
+          "max": null,
+          "min": null,
+          "show": true
+        },
+        {
+          "format": "short",
+          "label": null,
+          "logBase": 1,
+          "max": null,
+          "min": null,
+          "show": true
+        }
+      ],
+      "yaxis": {
+        "align": false,
+        "alignLevel": null
+      }
+    },
+    {
+      "aliasColors": {},
+      "bars": false,
+      "dashLength": 10,
+      "dashes": false,
+      "datasource": "Prometheus",
+      "fill": 1,
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 8
       },
       "id": 10,
       "legend": {
@@ -323,7 +312,7 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "ptp_mean_delay",
+          "expr": "{__name__=~\"sfp_temperature_p[0-9]\"}",
           "format": "time_series",
           "intervalFactor": 1,
           "refId": "A"
@@ -333,7 +322,7 @@
       "timeFrom": null,
       "timeRegions": [],
       "timeShift": null,
-      "title": "PTP Main Delay",
+      "title": "SFP Temperature",
       "tooltip": {
         "shared": true,
         "sort": 0,
@@ -375,10 +364,10 @@
       "dashboardTags": [],
       "folderId": null,
       "gridPos": {
-        "h": 7,
-        "w": 4,
-        "x": 20,
-        "y": 11
+        "h": 4,
+        "w": 24,
+        "x": 0,
+        "y": 16
       },
       "id": 18,
       "limit": 10,
@@ -431,7 +420,7 @@
     ]
   },
   "timezone": "",
-  "title": "PTP Monitor",
-  "uid": "H_b6I9nZk",
-  "version": 3
+  "title": "EmBox6 SFP Monitor",
+  "uid": "UG7cH9nWz",
+  "version": 1
 }

@@ -15,4 +15,4 @@ RUN pip install prometheus_client
 COPY emBox3_2110sfp_Monitor.py /opt
 COPY emBox6Monitor.py /opt
 
-CMD python /opt/emBox3_2110sfp_Monitor.py --ip $deviceip --port $port
+CMD python /opt/emBox6Monitor.py --ip $deviceip --port $port

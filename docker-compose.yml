@@ -1,0 +1,17 @@
+version: '2'
+
+services:
+    prometheus:
+        container_name: emprometheus
+        build: PrometheusMonitoring/server/.
+        ports:
+            - "9090:9090"
+    grafana:
+        container_name: grafana
+        image: grafana/grafana
+        ports:
+            - "3000:3000"
+        depends_on:
+            - prometheus
+        volumes:
+            - ./Grafana/:/etc/grafana/provisioning/

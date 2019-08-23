@@ -1,19 +1,4 @@
 {
-  "__inputs": [],
-  "__requires": [
-    {
-      "type": "grafana",
-      "id": "grafana",
-      "name": "Grafana",
-      "version": "6.2.2"
-    },
-    {
-      "type": "panel",
-      "id": "graph",
-      "name": "Graph",
-      "version": ""
-    }
-  ],
   "annotations": {
     "list": [
       {
@@ -30,8 +15,8 @@
   "editable": true,
   "gnetId": null,
   "graphTooltip": 0,
-  "id": null,
-  "iteration": 1565711492213,
+  "id": 2,
+  "iteration": 1566598135630,
   "links": [],
   "panels": [
     {
@@ -39,6 +24,7 @@
       "bars": false,
       "dashLength": 10,
       "dashes": false,
+      "datasource": "Prometheus",
       "fill": 1,
       "gridPos": {
         "h": 9,
@@ -71,7 +57,7 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "{__name__=~\"ch${ChannelNumber}_${DataType}_2110(_[0-9])?_prim_pkt_cnt\"}",
+          "expr": "{__name__=~\"ch${ChannelNumber}_${DataType}_2110_prim_pkt_cnt\"}",
           "format": "time_series",
           "intervalFactor": 1,
           "refId": "A"
@@ -123,6 +109,7 @@
       "bars": false,
       "dashLength": 10,
       "dashes": false,
+      "datasource": "Prometheus",
       "fill": 1,
       "gridPos": {
         "h": 9,
@@ -155,7 +142,7 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "{__name__=~\"ch${ChannelNumber}_${DataType}_2110(_[0-9])?_prim_seq_err\"}",
+          "expr": "{__name__=~\"ch${ChannelNumber}_${DataType}_2110_prim_seq_err\"}",
           "format": "time_series",
           "intervalFactor": 1,
           "refId": "A"
@@ -207,6 +194,7 @@
       "bars": false,
       "dashLength": 10,
       "dashes": false,
+      "datasource": "Prometheus",
       "fill": 1,
       "gridPos": {
         "h": 9,
@@ -239,7 +227,7 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "{__name__=~\"ch${ChannelNumber}_${DataType}_2110(_[0-9])?_sec_pkt_cnt\"}",
+          "expr": "{__name__=~\"ch${ChannelNumber}_${DataType}_2110_prim_pkt_cnt\"}",
           "format": "time_series",
           "intervalFactor": 1,
           "refId": "A"
@@ -291,6 +279,7 @@
       "bars": false,
       "dashLength": 10,
       "dashes": false,
+      "datasource": "Prometheus",
       "fill": 1,
       "gridPos": {
         "h": 9,
@@ -323,7 +312,7 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "{__name__=~\"ch${ChannelNumber}_${DataType}_2110(_[0-9])?_sec_seq_err\"}",
+          "expr": "{__name__=~\"ch${ChannelNumber}_${DataType}_2110_sec_seq_err\"}",
           "format": "time_series",
           "intervalFactor": 1,
           "refId": "A"
@@ -380,8 +369,8 @@
         "allValue": null,
         "current": {
           "tags": [],
-          "text": "4",
-          "value": "4"
+          "text": "6",
+          "value": "6"
         },
         "hide": 0,
         "includeAll": false,
@@ -405,7 +394,7 @@
             "value": "3"
           },
           {
-            "selected": true,
+            "selected": false,
             "text": "4",
             "value": "4"
           },
@@ -415,7 +404,7 @@
             "value": "5"
           },
           {
-            "selected": false,
+            "selected": true,
             "text": "6",
             "value": "6"
           },
@@ -443,8 +432,8 @@
         "allValue": null,
         "current": {
           "tags": [],
-          "text": "AUDIO",
-          "value": "AUDIO"
+          "text": "VIDEO",
+          "value": "VIDEO"
         },
         "hide": 0,
         "includeAll": false,
@@ -453,12 +442,12 @@
         "name": "DataType",
         "options": [
           {
-            "selected": true,
+            "selected": false,
             "text": "AUDIO",
             "value": "AUDIO"
           },
           {
-            "selected": false,
+            "selected": true,
             "text": "VIDEO",
             "value": "VIDEO"
           },
@@ -475,7 +464,7 @@
     ]
   },
   "time": {
-    "from": "now-6h",
+    "from": "now-15m",
     "to": "now"
   },
   "timepicker": {
@@ -506,5 +495,5 @@
   "timezone": "",
   "title": "FlowsMonitor",
   "uid": "OiHRaNdWk",
-  "version": 2
+  "version": 1
 }
