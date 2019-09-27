@@ -116,6 +116,17 @@ class EmFlow:
                 self.seq_errs.set(-1)
 
 
+def get_dev_list(ip):
+    try:
+        r = requests.get("http://" + ip + "/emsfp/node/v1/self/diag/devices/", timeout=2)
+    except:
+        return None
+    if r.status_code == 200:
+        return r.json()
+    else:
+        return None
+
+
 def get_flows_list(ip):
     try:
         r = requests.get("http://" + ip + "/emsfp/node/v1/flows", timeout=2)
@@ -208,6 +219,27 @@ def get_response_time(ip, gauge):
         gauge.set(-1)
 
 
+def get_device_data(ip, device_uuid):
+    try:
+        r = requests.get("http://" + ip + "/emsfp/node/v1/self/diag/devices/" + device_uuid, timeout=2)
+    except:
+        return None
+    if r.status_code == 200:
+        return r.json()
+    else:
+        return None
+
+
+def monitor_device(ip, device_uuid, gauge_prim, gauge_sec):
+    try:
+        data = get_device_data(ip, device_uuid)
+        gauge_prim.set(int(data["sdi"]["flow_to_ptp_offset"]["primary"]))
+        gauge_sec.set(int(data["sdi"]["flow_to_ptp_offset"]["secondary"]))
+    except:
+        gauge_prim.set(-1)
+        gauge_sec.set(-1)
+        
+
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Options')
     parser.add_argument('--ip', help='ip of the device to monitor')
@@ -240,6 +272,11 @@ if __name__ == '__main__':
     sfp_p5_vcc = Gauge('sfp_vcc_p5', 'VCC voltage')
     sfp_p5_txpwr = Gauge('sfp_txpwr_p5', 'SFP Tx Power')
     sfp_p5_rxpwr = Gauge('sfp_rxpwr_p5', 'SFP Rx Power')
+    
+    dev1_sdi_to_ptp_offset_prim = Gauge('dev1_sdi_to_ptp_offset_prim', 'ns')
+    dev1_sdi_to_ptp_offset_sec = Gauge('dev1_sdi_to_ptp_offset_sec', 'ns')
+    dev2_sdi_to_ptp_offset_prim = Gauge('dev2_sdi_to_ptp_offset_prim', 'ns')
+    dev2_sdi_to_ptp_offset_sec = Gauge('dev2_sdi_to_ptp_offset_sec', 'ns')
 
     print("Scanning Flows...")
     table = PrettyTable()
@@ -259,25 +296,31 @@ if __name__ == '__main__':
         print(uuid)
         if newFlow.type == FlowType.AUDIO_2110:
             pkt_cnt_gauge_name = 'ch' + str(newFlow.channel) + '_' + newFlow.type.name + "_" + str(audio_index) + (
-				'_prim' if newFlow.isPrimary else '_sec') + '_pkt_cnt'
+                '_prim' if newFlow.isPrimary else '_sec') + '_pkt_cnt'
             seq_err_gauge_name = 'ch' + str(newFlow.channel) + '_' + newFlow.type.name + "_" + str(audio_index) + (
-				'_prim' if newFlow.isPrimary else '_sec') + '_seq_err'
+                '_prim' if newFlow.isPrimary else '_sec') + '_seq_err'
             if not newFlow.isPrimary:
                 audio_index += 1
         else:
             pkt_cnt_gauge_name = 'ch' + str(newFlow.channel) + '_' + newFlow.type.name + (
-				'_prim' if newFlow.isPrimary else '_sec') + '_pkt_cnt'
+                '_prim' if newFlow.isPrimary else '_sec') + '_pkt_cnt'
             seq_err_gauge_name = 'ch' + str(newFlow.channel) + '_' + newFlow.type.name + (
-				'_prim' if newFlow.isPrimary else '_sec') + '_seq_err'
+                '_prim' if newFlow.isPrimary else '_sec') + '_seq_err'
 
         newFlow.pkt_cnt = Gauge(pkt_cnt_gauge_name, 'Packet Count')
         if newFlow.dir == FlowDir.TX:
-			newFlow.seq_errs = Gauge(seq_err_gauge_name, 'Packet Count')
+            newFlow.seq_errs = Gauge(seq_err_gauge_name, 'Packet Count')
         flows.append(newFlow)
         table.add_row([newFlow.uuid, newFlow.type.name, newFlow.dir.name, "Primary" if newFlow.isPrimary else "Secondary",
-					   str(channel)])
+                       str(channel)])
         if newFlow.isPrimary is False and newFlow.type == FlowType.ANCIL_2110:
             channel += 1
+            
+    devices = []
+    
+    for dev in get_dev_list(args.ip):
+        devices.append(dev)
+    
 
 print("Discovered flows:")
 print(str(table))
@@ -295,6 +338,9 @@ while True:
     for flow in flows:
         flow.update_pkt_cnt()
         flow.update_seq_err()
-
+        
+    monitor_device(args.ip, devices[0], dev1_sdi_to_ptp_offset_prim, dev1_sdi_to_ptp_offset_sec)
+    monitor_device(args.ip, devices[1], dev2_sdi_to_ptp_offset_prim, dev2_sdi_to_ptp_offset_sec)
+    
     api_read_time.set(time.time() - start_time)
     time.sleep(interval)
