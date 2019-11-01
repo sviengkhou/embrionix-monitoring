@@ -11,6 +11,8 @@ RUN pip install requests
 RUN pip install argparse
 RUN pip install ping
 RUN pip install prometheus_client
+RUN pip install prettytable
+RUN pip install enum
 
 COPY emBox3_2110sfp_Monitor.py /opt
 COPY emBox6Monitor.py /opt

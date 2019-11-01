@@ -24,6 +24,28 @@ class FlowType(Enum):
     ANCIL_2110 = 3
 
 
+class SfpPort:
+    def __init__(self, ip, port_number):
+        self.port_number = port_number
+        self.gauge_temperature = Gauge('sfp_temperature_p' + str(self.port_number), 'Temperature of SFP in port ' + str(self.port_number))
+        self.gauge_vcc = Gauge('sfp_vcc_p' + str(self.port_number), 'VCC voltage')
+        self.gauge_txpwr = Gauge('sfp_txpwr_p' + str(self.port_number), 'SFP Tx Power')
+        self.gauge_rxpwr = Gauge('sfp_rxpwr_p' + str(self.port_number), 'SFP Rx Power')
+        
+    def monitor_sfp_port(self):
+        try:
+            cfg = get_port_state(self.ip, self.portnum)
+            if cfg is not None:
+                self.gauge_temperature.set(cfg["sfp_ddm_info"]["temperature"]["current"])
+                self.gauge_vcc.set(cfg["sfp_ddm_info"]["vcc"]["current"])
+                self.gauge_txpwr.set(cfg["sfp_ddm_info"]["tx_power"]["current"])
+                self.gauge_rxpwr.set(cfg["sfp_ddm_info"]["rx_power"]["current"])
+        except:
+            self.gauge_temperature.set(-1)
+            self.gauge_vcc.set(-1)
+            self.gauge_txpwr.set(-1)
+            self.gauge_rxpwr.set(-1)
+
 class EmFlow:
     def __init__(self, mgmt_ip, uuid, flowIndex, channel):
         self.dir = FlowDir.RX
@@ -116,129 +138,195 @@ class EmFlow:
                 self.seq_errs.set(-1)
 
 
-def get_dev_list(ip):
-    try:
-        r = requests.get("http://" + ip + "/emsfp/node/v1/self/diag/devices/", timeout=2)
-    except:
-        return None
-    if r.status_code == 200:
-        return r.json()
-    else:
-        return None
+class Capabilities():
+    def __init__(self):
+        self.ptp = False
+        self.flows = False
+        self.flow_ptp_offset = False
+        self.sfp_ports = False
 
 
-def get_flows_list(ip):
-    try:
-        r = requests.get("http://" + ip + "/emsfp/node/v1/flows", timeout=2)
-    except:
-        return None
-    if r.status_code == 200:
-        return r.json()
-    else:
-        return None
+class emDevice():
+    def __init__(self, ip):
+        self.ip = ip
+        self.ports = []
+        self.flows = []
+        self.scan_capabilities()
+        self.init_gauges()
 
 
-def get_ptp_diag(ip):
-    try:
-        r = requests.get("http://" + ip + "/emsfp/node/v1/self/diag/refclk", timeout=2)
-    except:
-        return None
-    if r.status_code == 200:
-        return r.json()
-    else:
-        return None
+    def init_gauges(self):
+        ping_latency_gauge = Gauge('ping_latency', 'Ping Latency')
+        api_read_time = Gauge('api_read_time', 'REST api total time for all calls')        
 
 
-def get_ptp_main_page(ip):
-    try:
-        r = requests.get("http://" + ip + "/emsfp/node/v1/refclk", timeout=2)
-    except:
-        return None
-    if r.status_code == 200:
-        return r.json()
-    else:
-        return None
+    def scan_capabilities(self):
+        self.capabilities = Capabilities()
+        self.register_flows()
+        if len(self.flows) > 0:
+            self.capabilities.flows = True
+        
+        ptp = self.get_ptp_main_page()
+        if ptp is not None:
+            self.capabilities.ptp = True
+            
+        for i in range(1,6):
+            if self.get_port_state(i) is not None:
+                self.ports.add(SfpPort(self.ip, i))
+                self.capabilities.sfp_ports = True
+                
+        if self.get_dev_list() is not None:
+            self.capabilities.flow_ptp_offset = True
 
 
-def get_port_state(ip, portnum):
-    try:
-        r = requests.get("http://" + ip + "/emsfp/node/v1/port/" + str(portnum), timeout=2)
-    except:
-        return None
-    if r.status_code == 200:
-        return r.json()
-    else:
-        return None
+    def register_flows(self):
+        flows = self.get_flows_list()
+        
+        table = PrettyTable()
+        table.field_names = ["UUID", "Type", "Dir", "Redundancy", "Chan"]
+        
+        for i, uuid in enumerate(flows):
+            newFlow = EmFlow(args.ip, uuid.replace("/", ""), i, channel)
+
+            if newFlow.type == FlowType.ANCIL_2110:
+                audio_index = 0
+
+            pkt_cnt_gauge_name = ""
+            seq_err_gauge_name = ""
+            print(uuid)
+            if newFlow.type == FlowType.AUDIO_2110:
+                pkt_cnt_gauge_name = 'ch' + str(newFlow.channel) + '_' + newFlow.type.name + "_" + str(audio_index) + (
+                    '_prim' if newFlow.isPrimary else '_sec') + '_pkt_cnt'
+                seq_err_gauge_name = 'ch' + str(newFlow.channel) + '_' + newFlow.type.name + "_" + str(audio_index) + (
+                    '_prim' if newFlow.isPrimary else '_sec') + '_seq_err'
+                if not newFlow.isPrimary:
+                    audio_index += 1
+            else:
+                pkt_cnt_gauge_name = 'ch' + str(newFlow.channel) + '_' + newFlow.type.name + (
+                    '_prim' if newFlow.isPrimary else '_sec') + '_pkt_cnt'
+                seq_err_gauge_name = 'ch' + str(newFlow.channel) + '_' + newFlow.type.name + (
+                    '_prim' if newFlow.isPrimary else '_sec') + '_seq_err'
+
+            newFlow.pkt_cnt = Gauge(pkt_cnt_gauge_name, 'Packet Count')
+            if newFlow.dir == FlowDir.TX:
+                newFlow.seq_errs = Gauge(seq_err_gauge_name, 'Packet Count')
+            self.flows.append(newFlow)
+            table.add_row([newFlow.uuid, newFlow.type.name, newFlow.dir.name, "Primary" if newFlow.isPrimary else "Secondary",
+                           str(channel)])
+            if newFlow.isPrimary is False and newFlow.type == FlowType.ANCIL_2110:
+                channel += 1            
+                
+        print("Discovered flows:")
+        print(str(table))
 
 
-def monitor_sfp_port(ip, portnum, temperature_gauge, vcc_gauge, txpwr_gauge, rxpwr_gauge):
-    try:
-        cfg = get_port_state(ip, portnum)
-        if cfg is not None:
-            temperature_gauge.set(cfg["sfp_ddm_info"]["temperature"]["current"])
-            vcc_gauge.set(cfg["sfp_ddm_info"]["vcc"]["current"])
-            txpwr_gauge.set(cfg["sfp_ddm_info"]["tx_power"]["current"])
-            rxpwr_gauge.set(cfg["sfp_ddm_info"]["rx_power"]["current"])
-    except:
-        temperature_gauge.set(-1)
-        vcc_gauge.set(-1)
-        txpwr_gauge.set(-1)
-        rxpwr_gauge.set(-1)
-
-
-def monitor_ptp(ip, status_gauge, offset_from_master_gauge, mean_delay_gauge):
-    try:
-        info = get_ptp_main_page(ip)
-        if info is not None:
-            status_gauge.set(info['status'])
+    def get_ptp_main_page(self):
+        try:
+            r = requests.get("http://" + self.ip + "/emsfp/node/v1/refclk", timeout=2)
+        except:
+            return None
+        if r.status_code == 200:
+            return r.json()
         else:
+            return None
+
+
+    def get_flows_list(self):
+        try:
+            r = requests.get("http://" + self.ip + "/emsfp/node/v1/flows", timeout=2)
+        except:
+            return None
+        if r.status_code == 200:
+            return r.json()
+        else:
+            return None
+
+
+    def monitor_ptp(self, status_gauge, offset_from_master_gauge, mean_delay_gauge):
+        try:
+            info = get_ptp_main_page(ip)
+            if info is not None:
+                status_gauge.set(info['status'])
+            else:
+                status_gauge.set(-1)
+        except:
             status_gauge.set(-1)
-    except:
-        status_gauge.set(-1)
 
-    try:
-        diag = get_ptp_diag(ip)
-        if diag is not None:
-            offset_from_master_gauge.set(diag['offset_from_master'])
-            mean_delay_gauge.set(diag['mean_delay'])
-        else:
+        try:
+            diag = get_ptp_diag(ip)
+            if diag is not None:
+                offset_from_master_gauge.set(diag['offset_from_master'])
+                mean_delay_gauge.set(diag['mean_delay'])
+            else:
+                offset_from_master_gauge.set(-1)
+                mean_delay_gauge.set(-1)
+        except:
             offset_from_master_gauge.set(-1)
             mean_delay_gauge.set(-1)
-    except:
-        offset_from_master_gauge.set(-1)
-        mean_delay_gauge.set(-1)
 
 
-def get_response_time(ip, gauge):
-    latency = ping.do_one(ip, 1, 1000)
-    if latency is not None:
-        print("Latency: " + str(latency * 1000))
-        gauge.set(latency * 1000)
-    else:
-        print("Target down...")
-        gauge.set(-1)
-
-
-def get_device_data(ip, device_uuid):
-    try:
-        r = requests.get("http://" + ip + "/emsfp/node/v1/self/diag/devices/" + device_uuid, timeout=2)
-    except:
-        return None
-    if r.status_code == 200:
-        return r.json()
-    else:
-        return None
-
-
-def monitor_device(ip, device_uuid, gauge_prim, gauge_sec):
-    try:
-        data = get_device_data(ip, device_uuid)
-        gauge_prim.set(int(data["sdi"]["flow_to_ptp_offset"]["primary"]))
-        gauge_sec.set(int(data["sdi"]["flow_to_ptp_offset"]["secondary"]))
-    except:
-        gauge_prim.set(-1)
-        gauge_sec.set(-1)
+    def get_ptp_diag(self):
+        try:
+            r = requests.get("http://" + self.ip + "/emsfp/node/v1/self/diag/refclk", timeout=2)
+        except:
+            return None
+        if r.status_code == 200:
+            return r.json()
+        else:
+            return None
         
+    def get_dev_list(self):
+        try:
+            r = requests.get("http://" + self.ip + "/emsfp/node/v1/self/diag/devices/", timeout=2)
+        except:
+            return None
+        if r.status_code == 200:
+            return r.json()
+        else:
+            return None
+
+
+    def get_port_state(self, portnum):
+        try:
+            r = requests.get("http://" + self.ip + "/emsfp/node/v1/port/" + str(portnum), timeout=2)
+        except:
+            return None
+        if r.status_code == 200:
+            return r.json()
+        else:
+            return None
+
+
+    def get_response_time(self, gauge):
+        latency = ping.do_one(self.ip, 1, 1000)
+        if latency is not None:
+            print("Latency: " + str(latency * 1000))
+            gauge.set(latency * 1000)
+        else:
+            print("Target down...")
+            gauge.set(-1)
+
+
+    def get_device_data(self, device_uuid):
+        try:
+            r = requests.get("http://" + self.ip + "/emsfp/node/v1/self/diag/devices/" + device_uuid, timeout=2)
+        except:
+            return None
+        if r.status_code == 200:
+            return r.json()
+        else:
+            return None
+
+
+    def monitor_device(ip, device_uuid, gauge_prim, gauge_sec):
+        try:
+            data = get_device_data(ip, device_uuid)
+            gauge_prim.set(int(data["sdi"]["flow_to_ptp_offset"]["primary"]))
+            gauge_sec.set(int(data["sdi"]["flow_to_ptp_offset"]["secondary"]))
+        except:
+            gauge_prim.set(-1)
+            gauge_sec.set(-1)
+
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Options')
@@ -256,22 +344,10 @@ if __name__ == '__main__':
     i = Info('target_info', 'Information about the Embrionix device')
     i.info({'ip': args.ip, 'fw_desc': 'desc...', 'fw_tag': 'tag...', 'fw_crc': 'crc...'})
 
-    ping_latency_gauge = Gauge('ping_latency', 'Ping Latency')
-    api_read_time = Gauge('api_read_time', 'REST api total time for all calls')
 
     ptp_state = Gauge('ptp_status', 'Current PTP status, 3 being locked')
     ptp_offset_from_master = Gauge('ptp_offset_from_master', 'ptp offset from master')
     ptp_mean_delay = Gauge('ptp_mean_delay', 'ptp mean delay')
-
-    sfp_p3_temperature = Gauge('sfp_temperature_p3', 'Temperature of SFP in port 3')
-    sfp_p3_vcc = Gauge('sfp_vcc_p3', 'VCC voltage')
-    sfp_p3_txpwr = Gauge('sfp_txpwr_p3', 'SFP Tx Power')
-    sfp_p3_rxpwr = Gauge('sfp_rxpwr_p3', 'SFP Rx Power')
-
-    sfp_p5_temperature = Gauge('sfp_temperature_p5', 'Temperature of SFP in port 5')
-    sfp_p5_vcc = Gauge('sfp_vcc_p5', 'VCC voltage')
-    sfp_p5_txpwr = Gauge('sfp_txpwr_p5', 'SFP Tx Power')
-    sfp_p5_rxpwr = Gauge('sfp_rxpwr_p5', 'SFP Rx Power')
     
     dev1_sdi_to_ptp_offset_prim = Gauge('dev1_sdi_to_ptp_offset_prim', 'ns')
     dev1_sdi_to_ptp_offset_sec = Gauge('dev1_sdi_to_ptp_offset_sec', 'ns')
@@ -279,52 +355,17 @@ if __name__ == '__main__':
     dev2_sdi_to_ptp_offset_sec = Gauge('dev2_sdi_to_ptp_offset_sec', 'ns')
 
     print("Scanning Flows...")
-    table = PrettyTable()
-    table.field_names = ["UUID", "Type", "Dir", "Redundancy", "Chan"]
+
     uuid_list = get_flows_list(args.ip)
     flows = []
     channel = 1  # 1 Based channel, to be consistent with device ports numbering...
     audio_index = 0
-    for i, uuid in enumerate(uuid_list):
-        newFlow = EmFlow(args.ip, uuid.replace("/", ""), i, channel)
 
-        if newFlow.type == FlowType.ANCIL_2110:
-            audio_index = 0
-
-        pkt_cnt_gauge_name = ""
-        seq_err_gauge_name = ""
-        print(uuid)
-        if newFlow.type == FlowType.AUDIO_2110:
-            pkt_cnt_gauge_name = 'ch' + str(newFlow.channel) + '_' + newFlow.type.name + "_" + str(audio_index) + (
-                '_prim' if newFlow.isPrimary else '_sec') + '_pkt_cnt'
-            seq_err_gauge_name = 'ch' + str(newFlow.channel) + '_' + newFlow.type.name + "_" + str(audio_index) + (
-                '_prim' if newFlow.isPrimary else '_sec') + '_seq_err'
-            if not newFlow.isPrimary:
-                audio_index += 1
-        else:
-            pkt_cnt_gauge_name = 'ch' + str(newFlow.channel) + '_' + newFlow.type.name + (
-                '_prim' if newFlow.isPrimary else '_sec') + '_pkt_cnt'
-            seq_err_gauge_name = 'ch' + str(newFlow.channel) + '_' + newFlow.type.name + (
-                '_prim' if newFlow.isPrimary else '_sec') + '_seq_err'
-
-        newFlow.pkt_cnt = Gauge(pkt_cnt_gauge_name, 'Packet Count')
-        if newFlow.dir == FlowDir.TX:
-            newFlow.seq_errs = Gauge(seq_err_gauge_name, 'Packet Count')
-        flows.append(newFlow)
-        table.add_row([newFlow.uuid, newFlow.type.name, newFlow.dir.name, "Primary" if newFlow.isPrimary else "Secondary",
-                       str(channel)])
-        if newFlow.isPrimary is False and newFlow.type == FlowType.ANCIL_2110:
-            channel += 1
-            
     devices = []
     
     for dev in get_dev_list(args.ip):
         devices.append(dev)
     
-
-print("Discovered flows:")
-print(str(table))
-
 print("Starting main loop...")
 
 # Generate some requests.
