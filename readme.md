@@ -2,8 +2,8 @@
 
 **Note: This is a proof of concept**
 
-The monitor tool contains 3 major elements:
-* ionixmon: Main webpage for registering and monitoring devices.
+The monitor tool contains 4 major container images:
+* ionixmon: Main webpage for registering and monitoring devices.  One container will be spawned on host per monitored device.
 * Prometheus: Datalogging server
 * Grafana: Main UI
 * prometheus_interface: Docker image with scripts to monitor Embrionix devices
