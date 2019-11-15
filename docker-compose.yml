@@ -6,6 +6,8 @@ services:
         build: PrometheusMonitoring/server/.
         ports:
             - "9090:9090"
+        volumes:
+            - to_monitor:/home/to_monitor
     grafana:
         container_name: grafana
         image: grafana/grafana
@@ -15,3 +17,12 @@ services:
             - prometheus
         volumes:
             - ./Grafana/:/etc/grafana/provisioning/
+    ionixmon:
+        container_name: ionixmon
+        build: PrometheusMonitoring/devicemonitor/ionixmon/.
+        ports:
+            - "8060:8060"
+        volumes:
+            - /var/run/docker.sock:/var/run/docker.sock
+volumes:
+    to_monitor:
