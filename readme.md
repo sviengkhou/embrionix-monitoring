@@ -2,7 +2,7 @@
 
 **Note: This is a proof of concept**
 
-The monitor tool contains 4 major container images:
+The monitor tool contains 4 container images:
 * ionixmon: Main webpage for registering and monitoring devices.  One container will be spawned on host per monitored device.
 * Prometheus: Datalogging server
 * Grafana: Main UI
