@@ -56,6 +56,14 @@ def MainPage():
         return render_template('view_monitored_devices.html', monitoredDevices=monitored_devices)
     elif request.method == 'POST' and "viewGraphs" in request.form:        
         return render_template('view_graphs.html', monitoredDevices=monitored_devices)
+    elif request.method == 'POST' and "viewContainer" in request.form: 
+        containerId = request.form['containerId']
+        containerObj = docker_client.containers.get(containerId)
+        app.logger.warning("obj=" + str(containerObj))
+        app.logger.warning("objdir=" + str(dir(containerObj)))
+        app.logger.warning("container id: " + str(containerId))
+        app.logger.warning("container log: " + str(containerObj.logs()))
+        return render_template('view_docker_status.html', containerId=containerId, containerLog=containerObj.logs(stdout=True, stderr=True))
     else:
         app.logger.warning("Got: " + str(request.method))
         return render_template('index.html', monitoredDevices=monitored_devices)
@@ -70,7 +78,6 @@ if __name__ == '__main__':
             devIp = None
             env = container.attrs["Config"]["Env"]
             for kv in env:
-                app.logger.warning("kv=" + str(kv))
                 key = kv.split("=")[0]
                 if key == "deviceip":
                     devIp = kv.split("=")[1]

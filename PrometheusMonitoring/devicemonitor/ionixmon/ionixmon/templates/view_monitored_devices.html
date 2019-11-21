@@ -67,6 +67,7 @@
           <tr>
               <th scope="col">Name</th>
               <th scope="col">IP</th>
+              <th scope="col">Docker</th>
           </tr>
           </thead>
           <tbody>
@@ -75,6 +76,12 @@
               <tr>
                 <td>{{device.prettyName}}</td>
                 <td>{{device.ip}}</td>
+                <td>
+                  <form action="" method="post" role="form">
+                    <input type="hidden" id="containerId" name="containerId" value={{device.prettyName}}>
+                    <button class="btn btn-outline-success my-2 my-sm-0" type="submit" name="viewContainer" >{{device.prettyName}}</button>
+                  </form>
+                </td>
               </tr>
             {% endfor %}
           {% endblock %}
