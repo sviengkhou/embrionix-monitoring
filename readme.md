@@ -13,7 +13,7 @@ Prerequisites:
 * Internet access for deployment (In order to fetch Docker images)	
 
 Quickstart:
-1. From the checkout folder (At the same level as the docker-compose.yml file), run 'sudo docker-compose up -d'.
+1. From the checkout folder (At the same level as the docker-compose.yml file), run 'sudo docker-compose up -d --build'.
 1. From the same folder as in previous step, build the monitoring docker image, run 'sudo docker build -t prometheus_interface PrometheusMonitoring/devicemonitor/prometheus_interface'
 1. Using a web browser, connect to http://127.0.0.1:8060 and add the device to monitor
 1. Connect to prometheus target page on: http://127.0.0.1:9090/targets, verify that your target is up

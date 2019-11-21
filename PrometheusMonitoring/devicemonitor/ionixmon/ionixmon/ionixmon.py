@@ -37,16 +37,29 @@ def send_bootstrapcss():
 @app.route('/', methods=['GET', 'POST'])
 def MainPage():
     name = TextField('Name:', validators=[validators.required()])
-    if request.method == 'POST':
+    app.logger.warning(str(request.form))
+    if request.method == 'POST' and "addDevice" in request.form:
         deviceIp = request.form['deviceIp']
         deviceName = request.form['deviceName']
         newDev = MonitoringInformation(deviceIp, deviceName)
         monitored_devices.append(newDev)
         app.logger.warning("Device IP: " + str(newDev.ip) + " Device name: " + str(newDev.prettyName))
-        docker_client.containers.run("prometheus_interface", environment = ["deviceip="+deviceIp, "port=10600", "prettyName="+deviceName], detach=True, volumes={'graphicmonitor_to_monitor': {'bind': '/home/to_monitor/', 'mode': 'rw'}}, publish_all_ports=True, network="graphicmonitor_default")
+        docker_client.containers.run("prometheus_interface", 
+            environment = ["deviceip="+deviceIp, "port=10600", "prettyName="+deviceName], 
+            name=deviceName,
+            detach=True, 
+            volumes={'graphicmonitor_to_monitor': {'bind': '/home/to_monitor/', 'mode': 'rw'}}, 
+            publish_all_ports=True,
+            network="graphicmonitor_default")
+        return render_template('index.html', monitoredDevices=monitored_devices)
+    elif request.method == 'POST' and "viewDevices" in request.form:
+        return render_template('view_monitored_devices.html', monitoredDevices=monitored_devices)
+    elif request.method == 'POST' and "viewStatus" in request.form:
     else:
         app.logger.warning("Got: " + str(request.method))
-    return render_template('index.html', monitoredDevices=monitored_devices)
+        return render_template('index.html', monitoredDevices=monitored_devices)
+
+
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=8060)

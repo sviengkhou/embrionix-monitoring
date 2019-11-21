@@ -220,23 +220,6 @@ def monitor_ptp(ip, status_gauge, offset_from_master_gauge, mean_delay_gauge):
         offset_from_master_gauge.set(-1)
         mean_delay_gauge.set(-1)
 
-#TODO: Remove
-def get_core_temp_via_debug(ip, gauge):
-    try:
-        json_dbg = '{"debug_1":"1","debug_2":"0x60030304","debug_3":"0x00000000","debug_4" : "1"}'
-        url = "http://" + args.ip + "/emsfp/node/v1/self/diag/debug"
-        cmd = 'curl -s -X PUT -H "Content-Type: application/json" -d \'' + str(json_dbg) + '\' ' + str(url)
-        
-        raw_rsp = os.popen(cmd)
-        
-        json_rsp = json.loads(raw_rsp.readlines()[0])
-        raw_temp = int(json_rsp["debug_3"], 16)
-        temperature = ((raw_temp * 509.3140064)/65536)-280.2308787
-        gauge.set(temperature)
-        
-    except:
-        gauge.set(-1)
-
 
 def get_core_and_fan_speed(ip, temp_gauge, fan_gauge):
     try:

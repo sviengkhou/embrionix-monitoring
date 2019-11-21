@@ -26,6 +26,11 @@
         </button>
         <div class="collapse navbar-collapse" id="navbarNavDropdown">
           <ul class="navbar-nav">
+            <li class="form-inline">
+              <form action="" method="post" role="form">
+                <button class="btn btn-outline-success my-2 my-sm-0" type="submit" name="viewDevices">View Devices Status</button>
+              </form>
+            </li>
             <li class="nav-item dropdown">
               <a class="nav-link dropdown-toggle" href="#" id="navbarDropdownMenuLink" role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
                 Monitored Devices
@@ -39,7 +44,7 @@
               <form action="" method="post" role="form">
                 <input class="form-control mr-sm-2" type="input" id="deviceName" name="deviceName" placeholder="Device Name" aria-label="Device Name">
                 <input class="form-control mr-sm-2" type="input" id="deviceIp" name="deviceIp" placeholder="Device IP" aria-label="Device IP">
-                <button class="btn btn-outline-success my-2 my-sm-0" type="submit">Add</button>
+                <button class="btn btn-outline-success my-2 my-sm-0" type="submit" name="addDevice">Add</button>
               </form>
             </li>
           </ul>
@@ -50,6 +55,7 @@
     
     {% block content %}
     <h1></h1>
+    
     {% endblock %}
   </body>
 </html>
