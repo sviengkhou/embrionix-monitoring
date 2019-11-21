@@ -50,11 +50,12 @@ def MainPage():
             detach=True, 
             volumes={'graphicmonitor_to_monitor': {'bind': '/home/to_monitor/', 'mode': 'rw'}}, 
             publish_all_ports=True,
-            network="graphicmonitor_default")
+            network="graphicmonitor_bridge_net")
         return render_template('index.html', monitoredDevices=monitored_devices)
     elif request.method == 'POST' and "viewDevices" in request.form:
         return render_template('view_monitored_devices.html', monitoredDevices=monitored_devices)
-    elif request.method == 'POST' and "viewStatus" in request.form:
+    elif request.method == 'POST' and "viewGraphs" in request.form:        
+        return render_template('view_graphs.html', monitoredDevices=monitored_devices)
     else:
         app.logger.warning("Got: " + str(request.method))
         return render_template('index.html', monitoredDevices=monitored_devices)
@@ -62,4 +63,22 @@ def MainPage():
 
 
 if __name__ == '__main__':
+    image_id = docker_client.images.get("prometheus_interface:latest").id
+    for container in docker_client.containers.list():
+
+        if container.image.id == image_id:
+            devIp = None
+            env = container.attrs["Config"]["Env"]
+            for kv in env:
+                app.logger.warning("kv=" + str(kv))
+                key = kv.split("=")[0]
+                if key == "deviceip":
+                    devIp = kv.split("=")[1]
+            if devIp is not None:
+                app.logger.warning("Adding an already present monitor container: " + container.name)
+                newDev = MonitoringInformation(devIp, container.name)
+                monitored_devices.append(newDev)
+            else:
+                app.logger.warning("Could not add container: " + container.name)
+
     app.run(host='0.0.0.0', port=8060)

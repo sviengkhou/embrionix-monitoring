@@ -1,6 +1,6 @@
 # How to use the mock:
 # docker build -t box6_mock .
-# docker run -d --network="graphicmonitor_default"  box6_mock
+# docker run -d --network="graphicmonitor_bridge_net"  box6_mock
 # get ip and use it as your device in Ionixmon with:
 # docker network inspect graphicmonitor_default
 
