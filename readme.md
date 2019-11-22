@@ -14,7 +14,8 @@ The monitor tool contains 4 container images:
 * prometheus_interface: Docker image with scripts to monitor Embrionix devices.  Metrics are shown on monitor docker container ip port 10600.
 
 Prerequisites:
-* A running Docker instance with docker-compose installed
+* Docker: https://www.docker.com/products/docker-desktop
+* Docker-Compose: https://docs.docker.com/compose/install/
 * Internet access for deployment (In order to fetch Docker images)	
 
 Quickstart:
@@ -23,6 +24,10 @@ Quickstart:
 1. Using a web browser, connect to http://127.0.0.1:8060 and add the device to monitor in the top bar menu
 1. You can do a quick monitor on the 127.0.0.1:8060 page by checking graphs
 1. For deeper analysis, use Graphana on 127.0.0.1:3000 with a web browser (Default user/password is admin/admin)
+
+Tested OS:
+* Ubuntu 16.04/18.04
+* Windows 10
 
 Todo:
 * Alarms
