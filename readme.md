@@ -21,12 +21,15 @@ Quickstart:
 1. From the checkout folder (At the same level as the docker-compose.yml file), run 'sudo docker build -t prometheus_interface PrometheusMonitoring/devicemonitor/prometheus_interface'.
 1. From the same folder as in previous step, build the monitoring docker image, run 'sudo docker-compose up -d --build'
 1. Using a web browser, connect to http://127.0.0.1:8060 and add the device to monitor
-1. Connect to prometheus target page on: http://127.0.0.1:9090/targets, verify that your target is up
-1. Open Graphana on 127.0.0.1:3000 with a web browser (Default user/password is admin/admin)
+1. You can do a quick monitor on the 127.0.0.1:8060 page by checking graphs
+1. For deeper analysis, use Graphana on 127.0.0.1:3000 with a web browser (Default user/password is admin/admin)
 
 Todo:
-* Complete ionixmon navigation page, embed graphs & improve UI
 * Alarms
 * Allow for monitor container removal
 * Cleanup docker networks
+* Use one container for monitoring instead of spawning one for each monitor threads
+* Support syslog
+* Device overview
+* Load test
 * Merge script with capabilites from feature/all_flows
