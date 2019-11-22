@@ -1,0 +1,43 @@
+version: '2'
+
+services:
+    prometheus:
+        container_name: emprometheus
+        build: PrometheusMonitoring/server/.
+        ports:
+            - "9090:9090"
+        volumes:
+            - to_monitor:/home/to_monitor
+        networks:
+            - bridge_net
+    grafana:
+        container_name: grafana
+        image: grafana/grafana
+        hostname: grafana
+        ports:
+            - "3000:3000"
+        depends_on:
+            - prometheus
+        volumes:
+            - ./Grafana/:/etc/grafana/provisioning/
+        networks:
+            - bridge_net
+        environment:
+            - GF_AUTH_ANONYMOUS_ENABLED=true
+            - GF_SECURITY_ALLOW_EMBEDDING=true
+    ionixmon:
+        container_name: ionixmon
+        build: PrometheusMonitoring/devicemonitor/ionixmon/.
+        ports:
+            - "8060:8060"
+        volumes:
+            - /var/run/docker.sock:/var/run/docker.sock
+        networks:
+            - bridge_net
+
+volumes:
+    to_monitor:
+    
+networks:
+    bridge_net:
+        driver: bridge

@@ -5,10 +5,14 @@
 # distributed under the License is distributed on an "AS IS" BASIS,
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 
-FROM prom/prometheus
+FROM alpine:latest
 
-# Add folder for target files
-RUN mkdir -p /home/to_monitor
+RUN apk add --update \
+	python3 \
+	py3-pip \
+    docker
 
-# Add in the configuration file from the local directory.
-ADD prometheus.yml /etc/prometheus/prometheus.yml
+RUN pip3 install requests argparse prettytable prometheus_client flask wtforms docker
+ADD ionixmon /opt/ionixmon
+
+CMD python3 /opt/ionixmon/ionixmon.py

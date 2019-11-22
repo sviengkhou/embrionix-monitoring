@@ -15,7 +15,7 @@
   "editable": true,
   "gnetId": null,
   "graphTooltip": 0,
-  "id": 1,
+  "id": 6,
   "links": [],
   "panels": [
     {
@@ -210,12 +210,12 @@
       "dashes": false,
       "fill": 1,
       "gridPos": {
-        "h": 8,
+        "h": 7,
         "w": 10,
         "x": 0,
         "y": 11
       },
-      "id": 27,
+      "id": 32,
       "legend": {
         "avg": false,
         "current": false,
@@ -240,23 +240,17 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "pkt_cnt_304",
+          "expr": "{__name__=~\"ch[0-9]_(VIDEO|AUDIO|ANCIL)_2110(_[0-9])?_prim_pkt_cnt\"}",
           "format": "time_series",
           "intervalFactor": 1,
           "refId": "A"
-        },
-        {
-          "expr": "pkt_cnt_404",
-          "format": "time_series",
-          "intervalFactor": 1,
-          "refId": "B"
         }
       ],
       "thresholds": [],
       "timeFrom": null,
       "timeRegions": [],
       "timeShift": null,
-      "title": "Packet Count Primary",
+      "title": "Aggregated Primary Flows view",
       "tooltip": {
         "shared": true,
         "sort": 0,
@@ -273,7 +267,7 @@
       "yaxes": [
         {
           "format": "short",
-          "label": null,
+          "label": "Packets",
           "logBase": 1,
           "max": null,
           "min": null,
@@ -281,7 +275,7 @@
         },
         {
           "format": "short",
-          "label": null,
+          "label": "Packets",
           "logBase": 1,
           "max": null,
           "min": null,
@@ -294,18 +288,52 @@
       }
     },
     {
+      "alert": {
+        "conditions": [
+          {
+            "evaluator": {
+              "params": [
+                null
+              ],
+              "type": "gt"
+            },
+            "operator": {
+              "type": "and"
+            },
+            "query": {
+              "params": [
+                "A",
+                "5m",
+                "now"
+              ]
+            },
+            "reducer": {
+              "params": [],
+              "type": "avg"
+            },
+            "type": "query"
+          }
+        ],
+        "executionErrorState": "alerting",
+        "for": "5m",
+        "frequency": "1m",
+        "handler": 1,
+        "name": "Aggregated Secondary Flows view alert",
+        "noDataState": "no_data",
+        "notifications": []
+      },
       "aliasColors": {},
       "bars": false,
       "dashLength": 10,
       "dashes": false,
       "fill": 1,
       "gridPos": {
-        "h": 8,
+        "h": 7,
         "w": 10,
         "x": 10,
         "y": 11
       },
-      "id": 28,
+      "id": 35,
       "legend": {
         "avg": false,
         "current": false,
@@ -330,23 +358,25 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "pkt_cnt_305",
+          "expr": "{__name__=~\"ch[0-9]_(VIDEO|AUDIO|ANCIL)_2110(_[0-9])?_sec_pkt_cnt\"}",
           "format": "time_series",
           "intervalFactor": 1,
           "refId": "A"
-        },
-        {
-          "expr": "pkt_cnt_405",
-          "format": "time_series",
-          "intervalFactor": 1,
-          "refId": "B"
         }
       ],
-      "thresholds": [],
+      "thresholds": [
+        {
+          "colorMode": "critical",
+          "fill": true,
+          "line": true,
+          "op": "gt",
+          "value": null
+        }
+      ],
       "timeFrom": null,
       "timeRegions": [],
       "timeShift": null,
-      "title": "Packet Count Secondary",
+      "title": "Aggregated Secondary Flows view",
       "tooltip": {
         "shared": true,
         "sort": 0,
@@ -363,7 +393,7 @@
       "yaxes": [
         {
           "format": "short",
-          "label": null,
+          "label": "Packets",
           "logBase": 1,
           "max": null,
           "min": null,
@@ -371,7 +401,7 @@
         },
         {
           "format": "short",
-          "label": null,
+          "label": "Packets",
           "logBase": 1,
           "max": null,
           "min": null,
@@ -388,13 +418,13 @@
       "dashboardTags": [],
       "folderId": null,
       "gridPos": {
-        "h": 12,
+        "h": 28,
         "w": 4,
         "x": 20,
         "y": 11
       },
       "id": 18,
-      "limit": 10,
+      "limit": "50",
       "links": [],
       "nameFilter": "",
       "onlyAlertsOnDashboard": true,
@@ -416,76 +446,18 @@
       "type": "alertlist"
     },
     {
-      "alert": {
-        "conditions": [
-          {
-            "evaluator": {
-              "params": [
-                0
-              ],
-              "type": "gt"
-            },
-            "operator": {
-              "type": "and"
-            },
-            "query": {
-              "params": [
-                "A",
-                "10s",
-                "now"
-              ]
-            },
-            "reducer": {
-              "params": [],
-              "type": "last"
-            },
-            "type": "query"
-          },
-          {
-            "evaluator": {
-              "params": [
-                0
-              ],
-              "type": "gt"
-            },
-            "operator": {
-              "type": "or"
-            },
-            "query": {
-              "params": [
-                "B",
-                "10s",
-                "now"
-              ]
-            },
-            "reducer": {
-              "params": [],
-              "type": "last"
-            },
-            "type": "query"
-          }
-        ],
-        "executionErrorState": "alerting",
-        "for": "5m",
-        "frequency": "15s",
-        "handler": 1,
-        "name": "Seq Errors Primary alert",
-        "noDataState": "no_data",
-        "notifications": []
-      },
       "aliasColors": {},
       "bars": false,
       "dashLength": 10,
       "dashes": false,
-      "datasource": "Prometheus",
       "fill": 1,
       "gridPos": {
-        "h": 8,
+        "h": 7,
         "w": 10,
         "x": 0,
-        "y": 19
+        "y": 18
       },
-      "id": 24,
+      "id": 36,
       "legend": {
         "avg": false,
         "current": false,
@@ -510,31 +482,17 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "seq_err_304",
+          "expr": "{__name__=~\"ch[0-9]_(VIDEO|AUDIO|ANCIL)_2110(_[0-9])?_prim_seq_err\"}",
           "format": "time_series",
           "intervalFactor": 1,
           "refId": "A"
-        },
-        {
-          "expr": "seq_err_404",
-          "format": "time_series",
-          "intervalFactor": 1,
-          "refId": "B"
         }
       ],
-      "thresholds": [
-        {
-          "colorMode": "critical",
-          "fill": true,
-          "line": true,
-          "op": "gt",
-          "value": 0
-        }
-      ],
+      "thresholds": [],
       "timeFrom": null,
       "timeRegions": [],
       "timeShift": null,
-      "title": "Seq Errors Primary",
+      "title": "Aggregated Primary Flows Sequence Errors",
       "tooltip": {
         "shared": true,
         "sort": 0,
@@ -551,7 +509,7 @@
       "yaxes": [
         {
           "format": "short",
-          "label": null,
+          "label": "Packets Errors",
           "logBase": 1,
           "max": null,
           "min": null,
@@ -559,7 +517,7 @@
         },
         {
           "format": "short",
-          "label": null,
+          "label": "Packets Errors",
           "logBase": 1,
           "max": null,
           "min": null,
@@ -572,76 +530,18 @@
       }
     },
     {
-      "alert": {
-        "conditions": [
-          {
-            "evaluator": {
-              "params": [
-                0
-              ],
-              "type": "gt"
-            },
-            "operator": {
-              "type": "and"
-            },
-            "query": {
-              "params": [
-                "A",
-                "10s",
-                "now"
-              ]
-            },
-            "reducer": {
-              "params": [],
-              "type": "last"
-            },
-            "type": "query"
-          },
-          {
-            "evaluator": {
-              "params": [
-                0
-              ],
-              "type": "gt"
-            },
-            "operator": {
-              "type": "or"
-            },
-            "query": {
-              "params": [
-                "B",
-                "5m",
-                "now"
-              ]
-            },
-            "reducer": {
-              "params": [],
-              "type": "last"
-            },
-            "type": "query"
-          }
-        ],
-        "executionErrorState": "alerting",
-        "for": "5m",
-        "frequency": "15s",
-        "handler": 1,
-        "name": "Seq Errors Secondary alert",
-        "noDataState": "no_data",
-        "notifications": []
-      },
       "aliasColors": {},
       "bars": false,
       "dashLength": 10,
       "dashes": false,
-      "datasource": "Prometheus",
       "fill": 1,
       "gridPos": {
-        "h": 8,
+        "h": 7,
         "w": 10,
         "x": 10,
-        "y": 19
+        "y": 18
       },
-      "id": 25,
+      "id": 37,
       "legend": {
         "avg": false,
         "current": false,
@@ -666,31 +566,17 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "seq_err_305",
+          "expr": "{__name__=~\"ch[0-9]_(VIDEO|AUDIO|ANCIL)_2110(_[0-9])?_sec_seq_err\"}",
           "format": "time_series",
           "intervalFactor": 1,
           "refId": "A"
-        },
-        {
-          "expr": "seq_err_405",
-          "format": "time_series",
-          "intervalFactor": 1,
-          "refId": "B"
         }
       ],
-      "thresholds": [
-        {
-          "colorMode": "critical",
-          "fill": true,
-          "line": true,
-          "op": "gt",
-          "value": 0
-        }
-      ],
+      "thresholds": [],
       "timeFrom": null,
       "timeRegions": [],
       "timeShift": null,
-      "title": "Seq Errors Secondary",
+      "title": "Aggregated Secondary Flows Sequence Errors",
       "tooltip": {
         "shared": true,
         "sort": 0,
@@ -707,7 +593,7 @@
       "yaxes": [
         {
           "format": "short",
-          "label": null,
+          "label": "Packets Errors",
           "logBase": 1,
           "max": null,
           "min": null,
@@ -715,7 +601,7 @@
         },
         {
           "format": "short",
-          "label": null,
+          "label": "Packets Errors",
           "logBase": 1,
           "max": null,
           "min": null,
@@ -737,7 +623,7 @@
         "h": 7,
         "w": 10,
         "x": 0,
-        "y": 27
+        "y": 25
       },
       "id": 16,
       "legend": {
@@ -827,7 +713,7 @@
         "h": 7,
         "w": 10,
         "x": 10,
-        "y": 27
+        "y": 25
       },
       "id": 14,
       "legend": {
@@ -917,7 +803,7 @@
         "h": 7,
         "w": 10,
         "x": 0,
-        "y": 34
+        "y": 32
       },
       "id": 12,
       "interval": "2s",
@@ -1008,7 +894,7 @@
         "h": 7,
         "w": 10,
         "x": 10,
-        "y": 34
+        "y": 32
       },
       "id": 10,
       "legend": {
@@ -1098,7 +984,7 @@
         "h": 7,
         "w": 10,
         "x": 0,
-        "y": 41
+        "y": 39
       },
       "id": 20,
       "legend": {
@@ -1240,7 +1126,7 @@
         "h": 7,
         "w": 10,
         "x": 10,
-        "y": 41
+        "y": 39
       },
       "id": 22,
       "legend": {
@@ -1332,7 +1218,7 @@
         "h": 6,
         "w": 10,
         "x": 0,
-        "y": 48
+        "y": 46
       },
       "id": 30,
       "legend": {
@@ -1437,5 +1323,5 @@
   "timezone": "",
   "title": "Embox6 P3 P5 PTP Monitorv3",
   "uid": "J6kpT4nZz",
-  "version": 24
+  "version": 1
 }
