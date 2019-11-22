@@ -8,10 +8,10 @@ distributed under the License is distributed on an "AS IS" BASIS,
 WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 
 The monitor tool contains 4 container images:
-* ionixmon: Main webpage for registering and monitoring devices.  One container will be spawned on host per monitored device.
-* Prometheus: Datalogging server
-* Grafana: Main UI
-* prometheus_interface: Docker image with scripts to monitor Embrionix devices
+* ionixmon: 127.0.0.1:8060: Main webpage for registering and monitoring devices.  One container will be spawned on host per monitored device.
+* Prometheus: 127.0.0.1:9090: Datalogging server
+* Grafana: 127.0.0.1:3000: Main UI
+* prometheus_interface: Docker image with scripts to monitor Embrionix devices.  Metrics are shown on monitor docker container ip port 10600.
 
 Prerequisites:
 * A running Docker instance with docker-compose installed
@@ -20,7 +20,7 @@ Prerequisites:
 Quickstart:
 1. From the checkout folder (At the same level as the docker-compose.yml file), run 'sudo docker build -t prometheus_interface PrometheusMonitoring/devicemonitor/prometheus_interface'.
 1. From the same folder as in previous step, build the monitoring docker image, run 'sudo docker-compose up -d --build'
-1. Using a web browser, connect to http://127.0.0.1:8060 and add the device to monitor
+1. Using a web browser, connect to http://127.0.0.1:8060 and add the device to monitor in the top bar menu
 1. You can do a quick monitor on the 127.0.0.1:8060 page by checking graphs
 1. For deeper analysis, use Graphana on 127.0.0.1:3000 with a web browser (Default user/password is admin/admin)
 
