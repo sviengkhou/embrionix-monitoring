@@ -1,3 +1,11 @@
+# Copyright 2019 Embrionix Design Inc.
+#
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+
+
 from flask import Flask, render_template, flash, request, send_file
 from wtforms import Form, TextField, TextAreaField, validators, StringField, SubmitField
 import logging

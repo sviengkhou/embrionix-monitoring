@@ -1,3 +1,10 @@
+# Copyright 2019 Embrionix Design Inc.
+#
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+
 # How to use the mock:
 # docker build -t box6_mock .
 # docker run -d --network="graphicmonitor_bridge_net"  box6_mock
