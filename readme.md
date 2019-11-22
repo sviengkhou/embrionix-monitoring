@@ -29,7 +29,8 @@ Tested OS:
 * Ubuntu 16.04/18.04
 
 Todo:
-* graphs in ionixmon will only be shown for 127.0.0.1 and thus will only work locally
+* Add/Remove devices from Prometheus
+* Graphs in ionixmon will only be shown for 127.0.0.1 and thus will only work locally
 * Alarms
 * Allow for monitor container removal
 * Cleanup docker networks
