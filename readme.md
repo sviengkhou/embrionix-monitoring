@@ -27,7 +27,6 @@ Quickstart:
 
 Tested OS:
 * Ubuntu 16.04/18.04
-* Windows 10
 
 Todo:
 * Alarms
