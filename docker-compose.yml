@@ -32,6 +32,7 @@ services:
             - "8060:8060"
         volumes:
             - /var/run/docker.sock:/var/run/docker.sock
+            - to_monitor:/home/to_monitor
         networks:
             - bridge_net
 
