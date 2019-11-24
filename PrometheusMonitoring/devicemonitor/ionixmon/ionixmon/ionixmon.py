@@ -50,15 +50,7 @@ class PrometheusServer():
             if target["discoveredLabels"]["job"] == target_name:
                 return target
         return None
-    
-    #try:
-    #    r = requests.get("http://emprometheus:9090/api/v1/targets", timeout=2)
-    #except:
-    #    return None
-    #if r.status_code == 200:
-    #    return r.json()
-    #else:
-    #    return None
+
     
 def RefreshMonitoredDevices():
     for dev in monitored_devices:
@@ -85,8 +77,10 @@ def RemoveMonitor(containerName):
     except:
         app.logger.error("Could not remove: " + str(containerName))
 
+
 def RemoveFromPrometheus(toRemove, path="/home/to_monitor"):
     os.remove(path + "/" + str(toRemove) + ".json")
+
 
 def show_monitored_devices():
     currentNames = []
@@ -98,7 +92,8 @@ def show_monitored_devices():
     RefreshMonitoredDevices()
     
     return render_template('view_monitored_devices.html', monitoredDevices=monitored_devices, orphans=orphans)
-    
+
+
 monitored_devices = []
 prometheus_server = PrometheusServer()
 
