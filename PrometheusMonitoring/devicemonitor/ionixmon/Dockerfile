@@ -14,5 +14,6 @@ RUN apk add --update \
 
 RUN pip3 install requests argparse prettytable prometheus_client flask wtforms docker
 ADD ionixmon /opt/ionixmon
+RUN mkdir /home/to_monitor
 
 CMD python3 /opt/ionixmon/ionixmon.py
