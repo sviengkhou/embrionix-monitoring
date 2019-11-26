@@ -63,8 +63,11 @@ def RefreshMonitoredDevices():
 
 def RemoveMonitor(containerName):
     # Remove from Docker...
-    container_instance = docker_client.containers.get(containerName)
-    container_instance.stop()
+    try:
+        container_instance = docker_client.containers.get(containerName)
+        container_instance.stop()
+    except, e:
+        app.logger.warning("Could not remove container: " + str(containerName) + " Error message: " + str(e))
     
     RemoveFromPrometheus(containerName)
     
