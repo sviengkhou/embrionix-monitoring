@@ -29,13 +29,10 @@ Tested OS:
 * Ubuntu 16.04/18.04
 
 Todo:
-* Add/Remove devices from Prometheus
+* Use one container for monitoring instead of spawning one for each monitor threads
 * Graphs in ionixmon will only be shown for 127.0.0.1 and thus will only work locally
 * Alarms
-* Allow for monitor container removal
 * Cleanup docker networks
-* Use one container for monitoring instead of spawning one for each monitor threads
 * Support syslog
-* Device overview
 * Load test
 * Merge script with capabilites from feature/all_flows
