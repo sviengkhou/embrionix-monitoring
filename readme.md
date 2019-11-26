@@ -39,5 +39,3 @@ Todo:
 * Device overview
 * Load test
 * Merge script with capabilites from feature/all_flows
-
-test_sebas
