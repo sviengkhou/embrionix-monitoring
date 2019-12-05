@@ -16,6 +16,6 @@ RUN apk add --update \
     
 RUN pip3 install requests argparse prettytable prometheus_client flask wtforms docker
 RUN mkdir /home/to_monitor
-COPY emBox6Monitor.py /opt/
+COPY rest_monitor.py /opt/
 
-CMD python3 /opt/emBox6Monitor.py --ip $deviceip --port $port --prettyName $prettyName
+CMD python3 /opt/rest_monitor.py --ip $deviceip --port $port --prettyName $prettyName
