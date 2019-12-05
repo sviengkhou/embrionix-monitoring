@@ -15,8 +15,7 @@
   "editable": true,
   "gnetId": null,
   "graphTooltip": 0,
-  "id": 2,
-  "iteration": 1566598135630,
+  "iteration": 1575582917156,
   "links": [],
   "panels": [
     {
@@ -57,7 +56,7 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "{__name__=~\"ch${ChannelNumber}_${DataType}_2110_prim_pkt_cnt\"}",
+          "expr": "{__name__=~\"ch${ChannelNumber}_${DataType}_(2110|2022)_prim_pkt_cnt\"}",
           "format": "time_series",
           "intervalFactor": 1,
           "refId": "A"
@@ -142,7 +141,7 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "{__name__=~\"ch${ChannelNumber}_${DataType}_2110_prim_seq_err\"}",
+          "expr": "{__name__=~\"ch${ChannelNumber}_${DataType}_(2022|2110)_prim_seq_err\"}",
           "format": "time_series",
           "intervalFactor": 1,
           "refId": "A"
@@ -227,7 +226,7 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "{__name__=~\"ch${ChannelNumber}_${DataType}_2110_prim_pkt_cnt\"}",
+          "expr": "{__name__=~\"ch${ChannelNumber}_${DataType}_(2022|2110)_prim_pkt_cnt\"}",
           "format": "time_series",
           "intervalFactor": 1,
           "refId": "A"
@@ -312,7 +311,7 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "{__name__=~\"ch${ChannelNumber}_${DataType}_2110_sec_seq_err\"}",
+          "expr": "{__name__=~\"ch${ChannelNumber}_${DataType}_(2022|2110)_sec_seq_err\"}",
           "format": "time_series",
           "intervalFactor": 1,
           "refId": "A"
@@ -360,6 +359,7 @@
       }
     }
   ],
+  "refresh": "5s",
   "schemaVersion": 18,
   "style": "dark",
   "tags": [],
@@ -369,8 +369,8 @@
         "allValue": null,
         "current": {
           "tags": [],
-          "text": "6",
-          "value": "6"
+          "text": "1",
+          "value": "1"
         },
         "hide": 0,
         "includeAll": false,
@@ -379,7 +379,7 @@
         "name": "ChannelNumber",
         "options": [
           {
-            "selected": false,
+            "selected": true,
             "text": "1",
             "value": "1"
           },
@@ -404,7 +404,7 @@
             "value": "5"
           },
           {
-            "selected": true,
+            "selected": false,
             "text": "6",
             "value": "6"
           },
@@ -464,7 +464,7 @@
     ]
   },
   "time": {
-    "from": "now-15m",
+    "from": "now-5m",
     "to": "now"
   },
   "timepicker": {

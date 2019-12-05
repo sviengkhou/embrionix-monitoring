@@ -37,6 +37,7 @@ class FlowType():
     VIDEO_2110 = 1
     AUDIO_2110 = 2
     ANCIL_2110 = 3
+    VIDEO_2022 = 4
     
     @classmethod
     def get_flow_type_name(self, flow_type):
@@ -46,6 +47,8 @@ class FlowType():
             return "AUDIO_2110"
         elif flow_type == 3:
             return "ANCIL_2110"
+        elif flow_type == 4:
+            return "VIDEO_2022"
         else:
             return "UNKNOWN"
 
@@ -62,13 +65,24 @@ class EmFlow:
         self.seq_errs = None
         self.channel = channel
 
-        # Primary/Secondary flow detection, cannot find a better way to do it...
-        if flowIndex % 2 == 0:
-            self.isPrimary = True
-
         self._check_if_quad()
         self._get_direction()
         self._get_type()
+        
+        # Primary/Secondary flow detection, cannot find a better way to do it...
+        if self.type == FlowType.VIDEO_2022:
+            if flowIndex <= 1:
+                self.isPrimary = True
+            else:
+                self.isPrimary = False
+                
+            if uuid[0] == 'a' or uuid[0] == 'b':
+                self.channel = 1
+            else:
+                self.channel = 2
+        else:
+            if flowIndex % 2 == 0:
+                self.isPrimary = True
 
     def _check_if_quad(self):
         cfg = self.get_flow_config()
@@ -89,7 +103,9 @@ class EmFlow:
 
     def _get_type(self):
         cfg = self.get_flow_config()
-        if cfg["format"]["format_type"] == "video":
+        if "format" not in cfg:
+            self.type = FlowType.VIDEO_2022
+        elif cfg["format"]["format_type"] == "video":
             self.type = FlowType.VIDEO_2110
         elif cfg["format"]["format_type"] == "audio":
             self.type = FlowType.AUDIO_2110
@@ -136,7 +152,7 @@ class EmFlow:
     def update_seq_err(self):
         if self.seq_errs is not None:
             diag = self.get_flow_diag()
-            if diag is not None:
+            if diag is not None and "rtp_stream_info" in diag:
                 if isinstance(diag["rtp_stream_info"], (list,)):
                     # TODO: Support all quad flows...
                     self.seq_errs.set(diag["rtp_stream_info"][0]["status"]["sequence_error"])
@@ -317,6 +333,7 @@ if __name__ == '__main__':
         flows.append(newFlow)
         table.add_row([newFlow.uuid, FlowType.get_flow_type_name(newFlow.type), FlowDir.get_flow_dir_name(newFlow.dir), "Primary" if newFlow.isPrimary else "Secondary",
                        str(channel)])
+        
         if newFlow.isPrimary is False and newFlow.type == FlowType.ANCIL_2110:
             channel += 1
             

@@ -1,9 +1,10 @@
 # Copyright 2019 Embrionix Design Inc.
 #
-#
+# 
 # Unless required by applicable law or agreed to in writing, software
 # distributed under the License is distributed on an "AS IS" BASIS,
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+
 
 
 from flask import Flask, render_template, flash, request, send_file
@@ -33,13 +34,16 @@ class PrometheusServer():
 
         for target in r.json()["data"]["activeTargets"]:
             names.append(target["discoveredLabels"]["job"])
-            
+
         return names
-        
+
     def get_orphan_prometheus_targets(self, currently_monitored_names):
         targets = self.get_all_prometheus_targets_names()
         for containerName in currently_monitored_names:
-            targets.remove(containerName)
+            try:
+                targets.remove(containerName)
+            except:
+                app.logger.warning(str(containerName) + " Have an associated container but no entry in Prometheus")
         return targets
         
     def get_info_for_target(self, target_name):
@@ -51,7 +55,7 @@ class PrometheusServer():
                 return target
         return None
 
-    
+
 def RefreshMonitoredDevices():
     for dev in monitored_devices:
         status = prometheus_server.get_info_for_target(dev.prettyName)
@@ -82,7 +86,10 @@ def RemoveMonitor(containerName):
 
 
 def RemoveFromPrometheus(toRemove, path="/home/to_monitor"):
-    os.remove(path + "/" + str(toRemove) + ".json")
+    try:
+        os.remove(path + "/" + str(toRemove) + ".json")
+    except Exception as e:
+        app.logger.warning(str(toRemove) + " cannot be removed from prometheus, reason: " + str(e))
 
 
 def show_monitored_devices():
@@ -135,9 +142,9 @@ def MainPage():
             environment = ["deviceip="+deviceIp, "port=10600", "prettyName="+deviceName], 
             name=deviceName,
             detach=True, 
-            volumes={'graphicmonitor_to_monitor': {'bind': '/home/to_monitor/', 'mode': 'rw'}}, 
+            volumes={'grafana_to_monitor': {'bind': '/home/to_monitor/', 'mode': 'rw'}}, 
             publish_all_ports=True,
-            network="graphicmonitor_bridge_net")
+            network="grafana_bridge_net")
         return render_template('index.html', monitoredDevices=monitored_devices)
     elif request.method == 'POST' and "viewDevices" in request.form:
         return show_monitored_devices()
