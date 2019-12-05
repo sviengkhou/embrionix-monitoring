@@ -15,7 +15,7 @@ The monitor tool contains 4 container images:
 
 Prerequisites:
 * Docker: https://www.docker.com/products/docker-desktop
-* Docker-Compose: https://docs.docker.com/compose/install/
+* Docker-Compose version >= 3.5: https://docs.docker.com/compose/install/
 * Internet access for deployment (In order to fetch Docker images)	
 
 Quickstart:
