@@ -9,6 +9,7 @@ FROM alpine:latest
 ENV deviceip=192.168.39.0
 ENV port=5150
 ENV prettyName="NA"
+ENV monitorScriptName="rest_monitor.py"
 
 RUN apk add --update \
 	python3 \
@@ -16,6 +17,6 @@ RUN apk add --update \
     
 RUN pip3 install requests argparse prettytable prometheus_client flask wtforms docker
 RUN mkdir /home/to_monitor
-COPY rest_monitor.py /opt/
+COPY *.py /opt/
 
-CMD python3 /opt/rest_monitor.py --ip $deviceip --port $port --prettyName $prettyName
+CMD python3 /opt/$monitorScriptName --ip $deviceip --port $port --prettyName $prettyName

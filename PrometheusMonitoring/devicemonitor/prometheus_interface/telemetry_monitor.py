@@ -253,7 +253,7 @@ if __name__ == '__main__':
     api_read_time = Gauge('api_read_time', 'REST api total time for all calls')
     
     print("Registering on Prometheus...")
-    #register_on_prometheus(args.prettyName)
+    register_on_prometheus(args.prettyName)
     
     while True:
         start_time = time.time()
