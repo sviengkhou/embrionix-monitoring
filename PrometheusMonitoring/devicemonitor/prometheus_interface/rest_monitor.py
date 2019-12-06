@@ -7,7 +7,7 @@
 
 from prometheus_client import start_http_server, Summary, Gauge, Info
 from prettytable import PrettyTable
-import random
+from emflow import FlowDir, FlowType, EmFlow
 import time
 import requests
 import argparse
@@ -18,148 +18,6 @@ import socket
 
 # Create a metric to track time spent and requests made.
 REQUEST_TIME = Summary('request_processing_seconds', 'Time spent processing request')
-
-
-class FlowDir():
-    RX = 1  # Encap Flow...
-    TX = 2  # Decap flow...
-    
-    @classmethod
-    def get_flow_dir_name(self, flow_type):
-        if flow_type == 1:
-            return "RX"
-        else:
-            return "TX"
-
-
-class FlowType():
-    UNKNOWN = 0
-    VIDEO_2110 = 1
-    AUDIO_2110 = 2
-    ANCIL_2110 = 3
-    VIDEO_2022 = 4
-    
-    @classmethod
-    def get_flow_type_name(self, flow_type):
-        if flow_type == 1:
-            return "VIDEO_2110"
-        elif flow_type == 2:
-            return "AUDIO_2110"
-        elif flow_type == 3:
-            return "ANCIL_2110"
-        elif flow_type == 4:
-            return "VIDEO_2022"
-        else:
-            return "UNKNOWN"
-
-
-class EmFlow:
-    def __init__(self, mgmt_ip, uuid, flowIndex, channel):
-        self.dir = FlowDir.RX
-        self.type = FlowType.VIDEO_2110
-        self.uuid = uuid
-        self.mgmt_ip = mgmt_ip
-        self.isQuad = False
-        self.isPrimary = False
-        self.pkt_cnt = None
-        self.seq_errs = None
-        self.channel = channel
-
-        self._check_if_quad()
-        self._get_direction()
-        self._get_type()
-        
-        # Primary/Secondary flow detection, cannot find a better way to do it...
-        if self.type == FlowType.VIDEO_2022:
-            if flowIndex <= 1:
-                self.isPrimary = True
-            else:
-                self.isPrimary = False
-                
-            if uuid[0] == 'a' or uuid[0] == 'b':
-                self.channel = 1
-            else:
-                self.channel = 2
-        else:
-            if flowIndex % 2 == 0:
-                self.isPrimary = True
-
-    def _check_if_quad(self):
-        cfg = self.get_flow_config()
-        if isinstance(cfg["network"], (list,)):
-            self.isQuad = True
-        else:
-            self.isQuad = False
-
-    def _get_direction(self):
-        if self.isQuad:
-            self.dir = FlowDir.TX  # Quads are automatically decapsulators
-        else:
-            cfg = self.get_flow_config()
-            if "pkt_filter_src_ip" in cfg["network"]:
-                self.dir = FlowDir.TX  # If we have netfilters settings, we are on a decap flow...
-            else:
-                self.dir = FlowDir.RX
-
-    def _get_type(self):
-        cfg = self.get_flow_config()
-        if "format" not in cfg:
-            self.type = FlowType.VIDEO_2022
-        elif cfg["format"]["format_type"] == "video":
-            self.type = FlowType.VIDEO_2110
-        elif cfg["format"]["format_type"] == "audio":
-            self.type = FlowType.AUDIO_2110
-        elif cfg["format"]["format_type"] == "ancillary":
-            self.type = FlowType.ANCIL_2110
-        else:
-            self.type = FlowType.UNKNOWN
-
-    def get_flow_config(self):
-        try:
-            r = requests.get("http://" + self.mgmt_ip + "/emsfp/node/v1/flows/" + self.uuid, timeout=2)
-        except:
-            return None
-        if r.status_code == 200:
-            return r.json()
-        else:
-            return None
-
-    def get_flow_diag(self):
-        try:
-            r = requests.get("http://" + self.mgmt_ip + "/emsfp/node/v1/self/diag/flow/" + self.uuid, timeout=2)
-        except:
-            return None
-        if r.status_code == 200:
-            return r.json()
-        else:
-            return None
-
-    def update_pkt_cnt(self):
-        cfg = self.get_flow_config()
-        if cfg is not None:
-            try:  # We can get text values such as N/A when a cleanswitch is pending.
-                if self.isQuad:
-                    # TODO: Support all quad flows...
-
-                    self.pkt_cnt.set(cfg["network"][0]["pkt_cnt"])
-                else:
-                    self.pkt_cnt.set(cfg["network"]["pkt_cnt"])
-            except:
-                self.pkt_cnt.set(-1)
-        else:
-            self.pkt_cnt.set(-1)
-
-    def update_seq_err(self):
-        if self.seq_errs is not None:
-            diag = self.get_flow_diag()
-            if diag is not None and "rtp_stream_info" in diag:
-                if isinstance(diag["rtp_stream_info"], (list,)):
-                    # TODO: Support all quad flows...
-                    self.seq_errs.set(diag["rtp_stream_info"][0]["status"]["sequence_error"])
-                else: 
-                    self.seq_errs.set(diag["rtp_stream_info"]["status"]["sequence_error"])
-            else:
-                self.seq_errs.set(-1)
 
 
 def get_flows_list(ip):
@@ -340,25 +198,22 @@ if __name__ == '__main__':
     print("Registering on Prometheus...")
     register_on_prometheus(args.prettyName)
 
-print("Discovered flows:")
-print(str(table))
-
-print("Starting main loop...")
-
-
-
-# Generate some requests.
-while True:
-    start_time = time.time()
-    #get_response_time(args.ip, ping_latency_gauge)
-    monitor_sfp_port(args.ip, 3, sfp_p3_temperature, sfp_p3_vcc, sfp_p3_txpwr, sfp_p3_rxpwr)
-    monitor_sfp_port(args.ip, 5, sfp_p5_temperature, sfp_p5_vcc, sfp_p5_txpwr, sfp_p5_rxpwr)
-    monitor_ptp(args.ip, ptp_state, ptp_offset_from_master, ptp_mean_delay)
-    get_core_and_fan_speed(args.ip, core_temp_gauge, fan_speed_gauge)
-
-    for flow in flows:
-        flow.update_pkt_cnt()
-        flow.update_seq_err()
-
-    api_read_time.set(time.time() - start_time)
-    time.sleep(interval)
+    print("Discovered flows:")
+    print(str(table))
+    
+    print("Starting main loop...")
+    
+    while True:
+        start_time = time.time()
+        #get_response_time(args.ip, ping_latency_gauge)
+        monitor_sfp_port(args.ip, 3, sfp_p3_temperature, sfp_p3_vcc, sfp_p3_txpwr, sfp_p3_rxpwr)
+        monitor_sfp_port(args.ip, 5, sfp_p5_temperature, sfp_p5_vcc, sfp_p5_txpwr, sfp_p5_rxpwr)
+        monitor_ptp(args.ip, ptp_state, ptp_offset_from_master, ptp_mean_delay)
+        get_core_and_fan_speed(args.ip, core_temp_gauge, fan_speed_gauge)
+    
+        for flow in flows:
+            flow.update_pkt_cnt()
+            flow.update_seq_err()
+    
+        api_read_time.set(time.time() - start_time)
+        time.sleep(interval)
