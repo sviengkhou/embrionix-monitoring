@@ -46,7 +46,6 @@ class SfpMonitor():
         self.sfp_txpwr = Gauge('sfp_txpwr_p' + str(port_num), 'SFP Tx Power')
         self.sfp_rxpwr = Gauge('sfp_rxpwr_p' + str(port_num), 'SFP Rx Power')
 
-
 class SignalDeviceMonitor():
     def find_channel_from_telemetry(self, telemetry):
         for device in telemetry["devices"]:
@@ -94,7 +93,6 @@ class DecapDeviceMonitor(SignalDeviceMonitor):
             self.flow_to_ptp_offset_sec_gauge.set(dev_info["flow_to_ptp_offset"]["secondary"])
         else:
             self.sdi_to_ptp_offset_gauge.set(-1)
-
 
 class FlowMonitor():
     def __init__(self, channel, dev_type, essence, isPrimary):
@@ -200,7 +198,6 @@ class TelemetryApi():
             # TODO: Rely on channel number when 3.0 is officially released.  This will not work for 
             # NMOS loads...
             channel_num = device["device"][0]
-            
             for engine in device["engines"]:
                 essence = engine["essence"]
                 for flow in engine["flows"]:
