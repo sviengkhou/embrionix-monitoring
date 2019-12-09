@@ -30,14 +30,11 @@ class MonitoringInformation():
         try:
             r = requests.get("http://" + self.ip + self.TELEMETRY_URL, timeout=2)
         except:
-            app.logger.warning("1-NO TELEMETRY")
             return False
 
         if r.status_code == 200:
-            app.logger.warning("2-TELEMETRY!")
             return True
         else:
-            app.logger.warning("3-NO TELEMETRY!")
             return False
 
 
