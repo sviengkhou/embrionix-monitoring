@@ -16,11 +16,26 @@ import os
 docker_client = docker.from_env()
 app = Flask(__name__)
 
+
 class MonitoringInformation():
+    TELEMETRY_URL = "/emsfp/node/v1/telemetry"
+    
     def __init__(self, ip, prettyName):
         self.ip = ip
         self.prettyName = prettyName
         self.prometheus_status = "NA"
+        self.telemetryAvailable = self.IsTelemetryAvailable()
+
+    def IsTelemetryAvailable(self):
+        try:
+            r = requests.get("http://" + self.ip + self.TELEMETRY_URL, timeout=2)
+        except:
+            return False
+
+        if r.status_code == 200:
+            return True
+        else:
+            return False
 
 
 class PrometheusServer():
@@ -70,6 +85,8 @@ def RemoveMonitor(containerName):
     try:
         container_instance = docker_client.containers.get(containerName)
         container_instance.stop()
+        container_instance.remove()
+        
     except Exception as e:
         app.logger.warning("Could not remove container: " + str(containerName) + " Error message: " + str(e))
     
@@ -138,8 +155,11 @@ def MainPage():
         newDev = MonitoringInformation(deviceIp, deviceName)
         monitored_devices.append(newDev)
         app.logger.warning("Device IP: " + str(newDev.ip) + " Device name: " + str(newDev.prettyName))
+        
+        script_name = "telemetry_monitor.py" if newDev.telemetryAvailable else "rest_monitor.py"
+        
         docker_client.containers.run("prometheus_interface", 
-            environment = ["deviceip="+deviceIp, "port=10600", "prettyName="+deviceName], 
+            environment = ["deviceip="+deviceIp, "port=10600", "prettyName="+deviceName, "monitorScriptName=" + script_name], 
             name=deviceName,
             detach=True, 
             volumes={'grafana_to_monitor': {'bind': '/home/to_monitor/', 'mode': 'rw'}}, 
@@ -153,9 +173,6 @@ def MainPage():
     elif request.method == 'POST' and "viewContainer" in request.form: 
         containerId = request.form['containerId']
         containerObj = docker_client.containers.get(containerId)
-        
-        app.logger.warning("orphans: " + str(status))
-        
         return render_template('view_docker_status.html', containerId=containerId, containerLog=containerObj.logs(stdout=True, stderr=True))
     elif request.method == 'POST' and "deleteMonitor" in request.form: 
         toDelete = request.form['containerId']
