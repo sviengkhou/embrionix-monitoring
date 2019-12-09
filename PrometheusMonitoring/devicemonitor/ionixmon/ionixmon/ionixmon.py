@@ -158,8 +158,6 @@ def MainPage():
         
         script_name = "telemetry_monitor.py" if newDev.telemetryAvailable else "rest_monitor.py"
         
-        app.logger.warning("SCRIPT: " + script_name)
-        
         docker_client.containers.run("prometheus_interface", 
             environment = ["deviceip="+deviceIp, "port=10600", "prettyName="+deviceName, "monitorScriptName=" + script_name], 
             name=deviceName,
