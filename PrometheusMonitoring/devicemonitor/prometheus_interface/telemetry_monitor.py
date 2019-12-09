@@ -47,6 +47,55 @@ class SfpMonitor():
         self.sfp_rxpwr = Gauge('sfp_rxpwr_p' + str(port_num), 'SFP Rx Power')
 
 
+class SignalDeviceMonitor():
+    def find_channel_from_telemetry(self, telemetry):
+        for device in telemetry["devices"]:
+            # TODO: Rely on channel number when 3.0 is officially released.  This will not work for 
+            # NMOS loads...
+            if int(device["device"][0]) == int(self.channel_num):
+                return device
+        return None
+
+
+class EncapDeviceMonitor(SignalDeviceMonitor):
+    def __init__(self, device_info):
+        # TODO: Rely on channel number when 3.0 is officially released.  This will not work for 
+        # NMOS loads...
+        self.channel_num = device_info["device"][0]
+        self.sdi_to_ptp_offset_gauge = None
+        self.create_gauge()
+        
+    def create_gauge(self):
+        self.sdi_to_ptp_offset_gauge = Gauge('sdi_to_ptp_offset_ch' + str(self.channel_num), 'SDI to PTP Offset ch' + str(self.channel_num))
+        
+    def refresh_gauge(self, telemetry):
+        dev_info = self.find_channel_from_telemetry(telemetry)
+        if dev_info is not None:
+            self.sdi_to_ptp_offset_gauge.set(dev_info["sdi_to_ptp_offset"])
+        else:
+            self.sdi_to_ptp_offset_gauge.set(-1)
+
+
+class DecapDeviceMonitor(SignalDeviceMonitor):
+    def __init__(self, device_info):
+        self.channel_num = device_info["device"][0]
+        self.flow_to_ptp_offset_prim_gauge = None
+        self.flow_to_ptp_offset_sec_gauge = None
+        self.create_gauge()
+        
+    def create_gauge(self):
+        self.flow_to_ptp_offset_prim_gauge = Gauge('flow_to_ptp_offset_prim_ch' + str(self.channel_num), 'Flow to PTP Offset primary ch' + str(self.channel_num))
+        self.flow_to_ptp_offset_sec_gauge = Gauge('flow_to_ptp_offset_sec_ch' + str(self.channel_num), 'Flow to PTP Offset secondary ch' + str(self.channel_num))
+        
+    def refresh_gauge(self, telemetry):
+        dev_info = self.find_channel_from_telemetry(telemetry)
+        if dev_info is not None:
+            self.flow_to_ptp_offset_prim_gauge.set(dev_info["flow_to_ptp_offset"]["primary"])
+            self.flow_to_ptp_offset_sec_gauge.set(dev_info["flow_to_ptp_offset"]["secondary"])
+        else:
+            self.sdi_to_ptp_offset_gauge.set(-1)
+
+
 class FlowMonitor():
     def __init__(self, channel, dev_type, essence, isPrimary):
         self.pkt_cnt_gauge = None
@@ -111,6 +160,7 @@ class TelemetryApi():
         self.ip = ip
         self.sfp_monitors = []
         self.flows_monitors = []
+        self.devices_monitors = []
         self.capabilites = TelemetryCapabilities()
         self.scan_capabilities()
         
@@ -124,6 +174,13 @@ class TelemetryApi():
         self.gauge_ptp_offset_from_master = Gauge('ptp_offset_from_master', 'ptp offset from master')
         self.gauge_ptp_mean_delay = Gauge('ptp_mean_delay', 'ptp mean delay')
 
+    def _init_devices_gauges(self, telemetry):
+        for device in telemetry["devices"]:
+            if device["type"] == "encapsulator":
+                self.devices_monitors.append(EncapDeviceMonitor(device))
+            elif device["type"] == "decapsulator":
+                self.devices_monitors.append(DecapDeviceMonitor(device))
+
     def _init_sfp_monitor_gauges(self, telemetry):
         for sfp_entry in telemetry["mngt_port"]:
             port_num = sfp_entry["port"]
@@ -135,7 +192,7 @@ class TelemetryApi():
             port_num = sfp_entry["port"]
             new_entry = SfpMonitor(port_num)
             self.sfp_monitors.append(new_entry)
-            
+
     def _init_flows_monitor_gauges(self, telemetry):
         for device in telemetry["devices"]:
             dev_type = FlowDir.RX if device["type"] == "encapsulator" else FlowDir.TX
@@ -143,6 +200,7 @@ class TelemetryApi():
             # TODO: Rely on channel number when 3.0 is officially released.  This will not work for 
             # NMOS loads...
             channel_num = device["device"][0]
+            
             for engine in device["engines"]:
                 essence = engine["essence"]
                 for flow in engine["flows"]:
@@ -165,6 +223,7 @@ class TelemetryApi():
         if "refclk" in telemetry:
             self.capabilites.ptp_monitor = True
             self._init_refclk_gauges()
+            self._init_devices_gauges(telemetry)
 
         if "mngt_port" in telemetry:
             self._init_sfp_monitor_gauges(telemetry)
@@ -193,7 +252,11 @@ class TelemetryApi():
             self.gauge_ptp_state.set(-1)
             self.gauge_ptp_offset_from_master.set(-1)
             self.gauge_ptp_mean_delay.set(-1)
-            
+
+    def refresh_devices(self, telemetry):
+        for device_mon in self.devices_monitors:
+            device_mon.refresh_gauge(telemetry)
+
     def _get_sfp_gauges(self, sfp_num):
         for entry in self.sfp_monitors:
             if entry.port_num == sfp_num:
@@ -210,12 +273,14 @@ class TelemetryApi():
 
     def refresh(self):
         telemetry = self.read_telemetry()
-        if self.capabilites.health:
-            self.refresh_health(telemetry)
-        if self.capabilites.ptp_monitor:
-            self.refresh_refclk(telemetry)
-        if self.capabilites.sfp_monitor:
-            self.refresh_sfp_monitor(telemetry)
+        if telemetry is not None:
+            if self.capabilites.health:
+                self.refresh_health(telemetry)
+            if self.capabilites.ptp_monitor:
+                self.refresh_refclk(telemetry)
+                self.refresh_devices(telemetry)
+            if self.capabilites.sfp_monitor:
+                self.refresh_sfp_monitor(telemetry)
 
     def read_telemetry(self):
         try:
@@ -245,11 +310,6 @@ if __name__ == '__main__':
     print("Starting Server...")
     start_http_server(int(args.port))
 
-    print("Init. Gauges...")
-    i = Info('target_info', 'Information about the Embrionix device')
-    i.info({'ip': args.ip, 'fw_desc': 'desc...', 'fw_tag': 'tag...', 'fw_crc': 'crc...'})
-
-    ping_latency_gauge = Gauge('ping_latency', 'Ping Latency')
     api_read_time = Gauge('api_read_time', 'REST api total time for all calls')
     
     print("Registering on Prometheus...")
