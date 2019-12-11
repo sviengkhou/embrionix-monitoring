@@ -1,3 +1,4 @@
+<!doctype html>
 <!--
 Copyright 2019 Embrionix Design Inc.
 
@@ -6,12 +7,21 @@ Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
 WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 -->
+<style>
+p,label {
+  color: white;
+  
+.center_div{
+    margin: 0 auto;
+    width:33% /* value of your choice which suits your alignment */
+}
+</style>
 
-<!doctype html>
+
 <html lang="en">
     <style type="text/css">
        body { background: #343A40 !important; } /* Adding !important forces the browser to overwrite the default style applied by Bootstrap */
-    </style>  
+    </style> 
   <head>
     <!-- Required meta tags -->
     <meta charset="utf-8">
@@ -31,20 +41,20 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
     
     {% include 'navbar.html' %}
     
-    <h1></h1>    
-      <table class="table table-dark">
-          <thead>
-          <tr>
-              <th scope="col">Name</th>
-              <th scope="col">IP</th>
-          </tr>
-          </thead>
-          <tbody>
-          {% block main %}
-          {{ containerId }} <br>
-          {{ containerLog }}
-          {% endblock %}
-          </tbody>
-      </table>
+    {% block content %}
+    <div class="container center_div">
+      <div class="input-group mb-3">
+        <div class="input-group-prepend">
+          <span class="input-group-text">Syslog Target</span>
+        </div>
+        <input type="text" class="form-control" placeholder={{ config.syslog_target }} aria-describedby="basic-addon1">
+      </div>
+      
+      <div class="custom-control custom-checkbox">
+        <input type="checkbox" class="custom-control-input" id="customCheck1" value="True">
+        <label class="custom-control-label" for="customCheck1">Enable Syslog</label>
+      </div>
+    </div>
+    {% endblock %}
   </body>
 </html>
