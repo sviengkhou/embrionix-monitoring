@@ -96,7 +96,40 @@ def LoadConfig(configFile="config.json"):
         blank_config = {}
         blank_config["syslog_target"] = "192.168.39.100"
         blank_config["enable_syslog"] = True
+        blank_config["ptp_event"] = True
+        blank_config["temp_event"] = True
+        blank_config["rtp_48k_event"] = True
+        blank_config["fan_speed"] = True
+        blank_config["sdi_event"] = True
+        blank_config["no_signal"] = True
+        blank_config["output_flywheel"] = True
+        blank_config["memory_pkt_error"] = True
+        blank_config["flow_impairment"] = True
+        blank_config["frame_repeat"] = True
+        blank_config["frame_skipped"] = True
+        blank_config["dash7_fifo_error"] = True
+        
         SaveConfig(blank_config)
+
+def GenerateConfigDataFromRequest(requestForm):
+    save_data = {}
+    save_data["syslog_target"] = request.form['syslog_target']
+    save_data["enable_syslog"] = True if "enable_syslog" in request.form else False
+    save_data["ptp_event"] = True if "ptp_event" in request.form else False
+    save_data["temp_event"] = True if "temp_event" in request.form else False
+    save_data["rtp_48k_event"] = True if "rtp_48k_event" in request.form else False
+    save_data["fan_speed"] = True if "fan_speed" in request.form else False
+    save_data["sdi_event"] = True if "sdi_event" in request.form else False
+    save_data["no_signal"] = True if "no_signal" in request.form else False
+    save_data["output_flywheel"] = True if "output_flywheel" in request.form else False
+    save_data["memory_pkt_error"] = True if "memory_pkt_error" in request.form else False
+    save_data["flow_impairment"] = True if "flow_impairment" in request.form else False
+    save_data["frame_repeat"] = True if "frame_repeat" in request.form else False
+    save_data["frame_skipped"] = True if "frame_skipped" in request.form else False
+    save_data["dash7_fifo_error"] = True if "dash7_fifo_error" in request.form else False
+    
+    return save_data
+
 
 def SaveConfig(data, configFile="config.json"):
     with open(configFile, 'w') as outfile:
@@ -246,9 +279,13 @@ def MainPage():
         RemoveMonitor(toDelete)
         return show_monitored_devices()
         
+    elif request.method == 'POST' and "saveConfig" in request.form: 
+        SaveConfig(GenerateConfigDataFromRequest(request.form))
+        return render_template('index.html')
+
     else:
         app.logger.warning("Got: " + str(request.method))
-        return render_template('index.html', monitoredDevices=monitored_devices)
+        return render_template('index.html')
 
 
 
