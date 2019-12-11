@@ -40,7 +40,6 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
               <th scope="col">Telemetry</th>
               <th scope="col">Prometheus</th>
               <th scope="col">Actions</th>
-              <th scope="col">Docker</th>
               <th scope="col">Delete</th>
           </tr>
           </thead>
@@ -61,12 +60,6 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
                 <td>
                   <form action="" method="post" role="form">
                     <input type="hidden" id="containerId" name="containerId" value={{device.prettyName}}>
-                    <button class="btn btn-primary my-2 my-sm-0" type="submit" name="viewContainer" >{{device.prettyName}}</button>
-                  </form>
-                </td>
-                <td>
-                  <form action="" method="post" role="form">
-                    <input type="hidden" id="containerId" name="containerId" value={{device.prettyName}}>
                     <button class="btn btn-danger my-2 my-sm-0" type="submit" name="deleteMonitor">Delete</button>
                   </form>
                 </td>
@@ -75,7 +68,6 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
            {% for device in orphans %}
               <tr>
                 <td>{{device}}</td>
-                <td>NA</td>
                 <td>NA</td>
                 <td>NA</td>
                 <td>NA</td>
