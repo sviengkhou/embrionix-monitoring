@@ -10,9 +10,12 @@
 from flask import Flask, render_template, flash, request, send_file
 from wtforms import Form, TextField, TextAreaField, validators, StringField, SubmitField
 import logging
+import json
 import docker
 import requests
+import re
 import os
+import datetime
 docker_client = docker.from_env()
 app = Flask(__name__)
 
@@ -71,6 +74,35 @@ class PrometheusServer():
         return None
 
 
+class SyslogEntry():
+    def __init__(self, rawString):
+        try:
+            self.time = rawString.split(" ", 1)[0]
+            self.src = re.findall(r"HOST_FROM=[0-9\.]*", rawString)[0].split("=")[1]
+            self.message = re.findall(r"MESSAGE=\".*\"", rawString)[0].split("=")[1]
+            self.msgid = re.findall(r"MSGID=.* ", rawString)[0].split("=")[1]
+        except:
+            app.logger.warning("Could not parse syslog: " + str(rawString))
+
+def LoadConfig(configFile="config.json"):
+    if os.path.exists(configFile):
+        # Load Config...
+        with open(configFile) as json_file:
+            data = json.load(json_file)
+            return data
+    else:
+        # Save Blank Config...
+        app.logger.warning("Cannot load config, creating a new one based on defaults")
+        blank_config = {}
+        blank_config["syslog_target"] = "192.168.39.100"
+        blank_config["enable_syslog"] = True
+        SaveConfig(blank_config)
+
+def SaveConfig(data, configFile="config.json"):
+    with open(configFile, 'w') as outfile:
+        json.dump(data, outfile)
+
+
 def RefreshMonitoredDevices():
     for dev in monitored_devices:
         status = prometheus_server.get_info_for_target(dev.prettyName)
@@ -102,6 +134,23 @@ def RemoveMonitor(containerName):
         app.logger.error("Could not remove: " + str(containerName))
 
 
+def GetDeviceByName(devName):
+    for device in monitored_devices:
+        if device.prettyName == devName:
+            return device
+    return None
+
+
+def GetDeviceSyslog(devIp):
+    syslog = []
+    syslog_raw = docker_client.containers.get("syslog-ng").exec_run("cat /var/log/messages-kv.log")
+    for line in str(syslog_raw.output, 'utf-8').splitlines():
+        newEntry = SyslogEntry(line)
+        if newEntry.src == devIp:
+            syslog.append(newEntry)
+    return syslog
+
+
 def RemoveFromPrometheus(toRemove, path="/home/to_monitor"):
     try:
         os.remove(path + "/" + str(toRemove) + ".json")
@@ -119,6 +168,9 @@ def show_monitored_devices():
     RefreshMonitoredDevices()
     
     return render_template('view_monitored_devices.html', monitoredDevices=monitored_devices, orphans=orphans)
+
+def show_configuration_page(config):
+    return render_template('config.html', config=config)
 
 
 monitored_devices = []
@@ -144,9 +196,13 @@ def send_bootstrapjs():
 def send_bootstrapcss():
     return send_file('css/bootstrap.min.css')
 
+@app.route('/templates/navbar.html')
+def send_navbar():
+    return send_file('templates/navbar.html')
 
 @app.route('/', methods=['GET', 'POST'])
 def MainPage():
+    config = LoadConfig()
     name = TextField('Name:', validators=[validators.required()])
     app.logger.warning(str(request.form))
     if request.method == 'POST' and "addDevice" in request.form:
@@ -166,20 +222,31 @@ def MainPage():
             publish_all_ports=True,
             network="grafana_bridge_net")
         return render_template('index.html', monitoredDevices=monitored_devices)
+    elif request.method == 'POST' and "configure" in request.form:
+        return show_configuration_page(config)
+
     elif request.method == 'POST' and "viewDevices" in request.form:
         return show_monitored_devices()
+        
     elif request.method == 'POST' and "viewGraphs" in request.form:        
         return render_template('view_graphs.html', monitoredDevices=monitored_devices)
+        
     elif request.method == 'POST' and "viewContainer" in request.form: 
         containerId = request.form['containerId']
         containerObj = docker_client.containers.get(containerId)
         return render_template('view_docker_status.html', containerId=containerId, containerLog=containerObj.logs(stdout=True, stderr=True))
+        
+    elif request.method == 'POST' and "viewSyslog" in request.form: 
+        device = GetDeviceByName(request.form['devName'])
+        syslog = GetDeviceSyslog(device.ip)
+        return render_template('view_syslog.html', syslog=syslog)
+        
     elif request.method == 'POST' and "deleteMonitor" in request.form: 
         toDelete = request.form['containerId']
         app.logger.warning("Deleting: " + str(toDelete))
-
         RemoveMonitor(toDelete)
         return show_monitored_devices()
+        
     else:
         app.logger.warning("Got: " + str(request.method))
         return render_template('index.html', monitoredDevices=monitored_devices)

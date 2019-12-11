@@ -25,6 +25,15 @@ services:
         environment:
             - GF_AUTH_ANONYMOUS_ENABLED=true
             - GF_SECURITY_ALLOW_EMBEDDING=true
+    syslog-ng:
+        container_name: syslog-ng
+        image: balabit/syslog-ng
+        ports:
+            - "514:514"
+            - "514:514/udp"
+            - "601:601"
+        networks:
+            - bridge_net
     ionixmon:
         container_name: ionixmon
         build: PrometheusMonitoring/devicemonitor/ionixmon/.
