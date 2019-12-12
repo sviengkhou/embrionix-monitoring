@@ -39,6 +39,7 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
               <th scope="col">IP</th>
               <th scope="col">Telemetry</th>
               <th scope="col">Prometheus</th>
+              <th scope="col">Syslog</th>
               <th scope="col">Actions</th>
               <th scope="col">Delete</th>
           </tr>
@@ -50,6 +51,7 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
                 <td>{{device.prettyName}}</td>
                 <td>{{device.ip}}</td>
                 <td>{{device.telemetryAvailable}}</td>
+                <td>{{device.syslogAvailable}}</td>
                 <td>{{device.prometheus_status}}</td>
                 <td>
                   <form action="" method="post" role="form">
@@ -68,6 +70,7 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
            {% for device in orphans %}
               <tr>
                 <td>{{device}}</td>
+                <td>NA</td>
                 <td>NA</td>
                 <td>NA</td>
                 <td>NA</td>
