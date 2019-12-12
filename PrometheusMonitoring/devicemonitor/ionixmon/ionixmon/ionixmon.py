@@ -6,8 +6,10 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 
 
-from flask import Flask, render_template, flash, request, send_file
+from flask import Flask, render_template, flash, request, send_file, make_response
 from wtforms import Form, TextField, TextAreaField, validators, StringField, SubmitField
+from io import StringIO
+import pyexcel as pe
 import logging
 import json
 import docker
@@ -276,6 +278,22 @@ def show_monitored_devices():
 def show_configuration_page(config):
     return render_template('config.html', config=config)
 
+def GenerateSyslogCsv(rawSyslog):
+    csvOutput = []
+    csvOutput.append(["Time", "SourceIp", "Message", "MessageId"])
+    
+    for event in rawSyslog:
+        csvOutput.append([event.time, event.src, event.message, event.msgid])
+    
+    app.logger.warning("out: " + str(csvOutput))
+    
+    sheet = pe.Sheet(csvOutput)
+    io = StringIO()
+    sheet.save_to_memory("csv", io)
+    output = make_response(io.getvalue())
+    output.headers["Content-Disposition"] = "attachment; filename=export.csv"
+    output.headers["Content-type"] = "text/csv"
+    return output
 
 monitored_devices = []
 prometheus_server = PrometheusServer()
@@ -345,7 +363,7 @@ def MainPage():
     elif request.method == 'POST' and "viewSyslog" in request.form: 
         device = GetDeviceByName(request.form['devName'])
         syslog = GetDeviceSyslog(device.ip)
-        return render_template('view_syslog.html', syslog=syslog)
+        return render_template('view_syslog.html', syslog=syslog, deviceIP=device.ip)
         
     elif request.method == 'POST' and "deleteMonitor" in request.form: 
         toDelete = request.form['containerId']
@@ -358,10 +376,13 @@ def MainPage():
         ApplySyslogConfigToAllUnits(request.form)
         return render_template('index.html')
 
+    elif request.method == 'POST' and "export_syslog_csv" in request.form:
+        devIp = request.form["deviceIP"]
+        return GenerateSyslogCsv(GetDeviceSyslog(devIp))
+
     else:
         app.logger.warning("Got: " + str(request.method))
         return render_template('index.html')
-
 
 
 if __name__ == '__main__':

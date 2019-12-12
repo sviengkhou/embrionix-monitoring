@@ -12,7 +12,7 @@ RUN apk add --update \
 	py3-pip \
     docker
 
-RUN pip3 install requests argparse prettytable prometheus_client flask wtforms docker datetime
+RUN pip3 install requests argparse prettytable prometheus_client flask wtforms docker datetime pyexcel
 ADD ionixmon /opt/ionixmon
 RUN mkdir /home/to_monitor
 
