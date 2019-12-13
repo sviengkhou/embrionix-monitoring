@@ -1,0 +1,125 @@
+<!doctype html>
+<!--
+Copyright 2019 Embrionix Design Inc.
+
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+-->
+<style>
+
+p,label {
+  color: white;
+}
+</style>
+
+
+<html lang="en">
+    <style type="text/css">
+       body { background: #343A40 !important; } /* Adding !important forces the browser to overwrite the default style applied by Bootstrap */
+    </style> 
+  <head>
+    <!-- Required meta tags -->
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+
+    <!-- Bootstrap CSS -->
+    <link rel="stylesheet" href="css/bootstrap.min.css" integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
+
+    <title>Ionixmon v0.1</title>
+  </head>
+  
+  <body>
+    <div class="col-md-6" style="background-color: blue"></div>
+    <script src="js/jquery-3.3.1.slim.min.js" integrity="sha384-q8i/X+965DzO0rT7abK41JStQIAqVgRVzpbzo5smXKp4YfRvH+8abtTE1Pi6jizo" crossorigin="anonymous"></script>
+    <script src="js/popper.min.js" integrity="sha384-UO2eT0CpHqdSJQ6hJty5KVphtPhzWj9WO1clHTMGa3JDZwrnQq4sF86dIHNDz0W1" crossorigin="anonymous"></script>
+    <script src="js/bootstrap.min.js" integrity="sha384-JjSmVgyd0p3pXB1rRibZUAYoIIy6OrQ6VrjIEaFf/nJGzIxFDsf4x0xIM+B07jRM" crossorigin="anonymous"></script>
+    
+    {% include 'navbar.html' %}
+    
+    {% block content %}
+    <div class="container center_div">
+      <form class="form-check" action="" method="post" role="form">
+        <label>Syslog Configuration</Label>
+        <div class="custom-control custom-checkbox">
+          <input type="checkbox" id="enable_syslog" name="enable_syslog" {{'checked="checked"' if config.enable_syslog==True else ""}}>
+          <label class="form-check-label" for="enable_syslog">Enable Syslog</label>
+        </div>
+        
+        <div class="input-group mb-3" data-toggle="tooltip" data-placement="left" title="Syslog target IP.  This is the address on host to which monitored units send their syslog entries">
+          <div class="input-group-prepend">
+            <span class="input-group-text">Syslog Target</span>
+          </div>
+          <input type="text" class="form-control" id="syslog_target" name="syslog_target" value={{ config.syslog_target }}>
+        </div>
+
+        <label>General</Label>
+        <div class="custom-control custom-checkbox">
+          <input type="checkbox" id="enable_syslog" name="ptp_event" {{'checked="checked"' if config.ptp_event==True else ""}}>
+          <label class="form-check-label" for="enable_syslog">Log PTP Events</label>
+        </div>
+
+        <div class="custom-control custom-checkbox">
+          <input type="checkbox" id="enable_syslog" name="temp_event" {{'checked="checked"' if config.temp_event==True else ""}}>
+          <label class="form-check-label" for="enable_syslog">Log Temperature Events</label>
+        </div>
+
+        <div class="custom-control custom-checkbox">
+          <input type="checkbox" id="enable_syslog" name="rtp_48k_event" {{'checked="checked"' if config.rtp_48k_event==True else ""}}>
+          <label class="form-check-label" for="enable_syslog">Log RTP 48K Events</label>
+        </div>
+
+        <div class="custom-control custom-checkbox">
+          <input type="checkbox" id="enable_syslog" name="fan_speed" {{'checked="checked"' if config.fan_speed==True else ""}}>
+          <label class="form-check-label" for="enable_syslog">Log Fan Speed Events</label>
+        </div>
+
+        <label>Encap</Label>
+        <div class="custom-control custom-checkbox">
+          <input type="checkbox" id="enable_syslog" name="sdi_event" {{'checked="checked"' if config.sdi_event==True else ""}}>
+          <label class="form-check-label" for="enable_syslog">Log SDI Signal Events</label>
+        </div>
+
+        <div class="custom-control custom-checkbox">
+          <input type="checkbox" id="enable_syslog" name="no_signal" {{'checked="checked"' if config.no_signal==True else ""}}>
+          <label class="form-check-label" for="enable_syslog">Log Signal Loss Events</label>
+        </div>
+        
+        <label>Decap</Label>
+        <div class="custom-control custom-checkbox">
+          <input type="checkbox" id="enable_syslog" name="output_flywheel" {{'checked="checked"' if config.output_flywheel==True else ""}}>
+          <label class="form-check-label" for="enable_syslog">Log Output Flywheel Events</label>
+        </div>
+
+        <div class="custom-control custom-checkbox">
+          <input type="checkbox" id="enable_syslog" name="memory_pkt_error" {{'checked="checked"' if config.memory_pkt_error==True else ""}}>
+          <label class="form-check-label" for="enable_syslog">Log Memory Packet Errors</label>
+        </div>
+
+        <div class="custom-control custom-checkbox">
+          <input type="checkbox" id="enable_syslog" name="flow_impairment" {{'checked="checked"' if config.flow_impairment==True else ""}}>
+          <label class="form-check-label" for="enable_syslog">Log Flow Impairements Events</label>
+        </div>
+
+        <div class="custom-control custom-checkbox">
+          <input type="checkbox" id="enable_syslog" name="frame_repeat" {{'checked="checked"' if config.frame_repeat==True else ""}}>
+          <label class="form-check-label" for="enable_syslog">Log Frame Repeat Events</label>
+        </div>
+
+        <div class="custom-control custom-checkbox">
+          <input type="checkbox" id="enable_syslog" name="frame_skipped" {{'checked="checked"' if config.frame_skipped==True else ""}}>
+          <label class="form-check-label" for="enable_syslog">Log Frame Skipped Events</label>
+        </div>
+
+        <div class="custom-control custom-checkbox">
+          <input type="checkbox" id="enable_syslog" name="dash7_fifo_error" {{'checked="checked"' if config.dash7_fifo_error==True else ""}}>
+          <label class="form-check-label" for="enable_syslog">Log -7 Fifo Errors</label>
+        </div>
+
+        <button class="btn btn-primary my-2 my-sm-0" type="submit" name="saveConfig">Save Configuration</button>
+      </form>
+    </div>
+    {% endblock %}
+  </body>
+</html>

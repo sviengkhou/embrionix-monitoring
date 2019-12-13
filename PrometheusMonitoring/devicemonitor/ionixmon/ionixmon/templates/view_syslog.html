@@ -30,19 +30,33 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
     <script src="js/bootstrap.min.js" integrity="sha384-JjSmVgyd0p3pXB1rRibZUAYoIIy6OrQ6VrjIEaFf/nJGzIxFDsf4x0xIM+B07jRM" crossorigin="anonymous"></script>
     
     {% include 'navbar.html' %}
-    
-    <h1></h1>    
+
+    <h1></h1>
+      <li class="form-inline">
+        <form action="" method="post" role="form">
+          <input type="hidden" id="deviceIP" name="deviceIP" value={{deviceIP}}>
+          <button class="btn btn-primary my-2 my-sm-0" type="submit" name="export_syslog_csv">Export To .CSV</button>
+        </form>
+      </li>
       <table class="table table-dark">
           <thead>
           <tr>
-              <th scope="col">Name</th>
+              <th scope="col">Time</th>
               <th scope="col">IP</th>
+              <th scope="col">Message</th>
+              <th scope="col">Msg Id</th>
           </tr>
           </thead>
           <tbody>
-          {% block main %}
-          {{ containerId }} <br>
-          {{ containerLog }}
+          {% block syslogmain %}
+            {% for entry in syslog %}
+              <tr>
+                <td>{{entry.time}}</td>
+                <td>{{entry.src}}</td>
+                <td>{{entry.message}}</td>
+                <td>{{entry.msgid}}</td>
+              </tr>
+            {% endfor %}
           {% endblock %}
           </tbody>
       </table>

@@ -46,6 +46,53 @@ class SfpMonitor():
         self.sfp_txpwr = Gauge('sfp_txpwr_p' + str(port_num), 'SFP Tx Power')
         self.sfp_rxpwr = Gauge('sfp_rxpwr_p' + str(port_num), 'SFP Rx Power')
 
+class SignalDeviceMonitor():
+    def find_channel_from_telemetry(self, telemetry):
+        for device in telemetry["devices"]:
+            # TODO: Rely on channel number when 3.0 is officially released.  This will not work for 
+            # NMOS loads...
+            if int(device["device"][0]) == int(self.channel_num):
+                return device
+        return None
+
+
+class EncapDeviceMonitor(SignalDeviceMonitor):
+    def __init__(self, device_info):
+        # TODO: Rely on channel number when 3.0 is officially released.  This will not work for 
+        # NMOS loads...
+        self.channel_num = device_info["device"][0]
+        self.sdi_to_ptp_offset_gauge = None
+        self.create_gauge()
+        
+    def create_gauge(self):
+        self.sdi_to_ptp_offset_gauge = Gauge('sdi_to_ptp_offset_ch' + str(self.channel_num), 'SDI to PTP Offset ch' + str(self.channel_num))
+        
+    def refresh_gauge(self, telemetry):
+        dev_info = self.find_channel_from_telemetry(telemetry)
+        if dev_info is not None:
+            self.sdi_to_ptp_offset_gauge.set(dev_info["sdi_to_ptp_offset"])
+        else:
+            self.sdi_to_ptp_offset_gauge.set(-1)
+
+
+class DecapDeviceMonitor(SignalDeviceMonitor):
+    def __init__(self, device_info):
+        self.channel_num = device_info["device"][0]
+        self.flow_to_ptp_offset_prim_gauge = None
+        self.flow_to_ptp_offset_sec_gauge = None
+        self.create_gauge()
+        
+    def create_gauge(self):
+        self.flow_to_ptp_offset_prim_gauge = Gauge('flow_to_ptp_offset_prim_ch' + str(self.channel_num), 'Flow to PTP Offset primary ch' + str(self.channel_num))
+        self.flow_to_ptp_offset_sec_gauge = Gauge('flow_to_ptp_offset_sec_ch' + str(self.channel_num), 'Flow to PTP Offset secondary ch' + str(self.channel_num))
+        
+    def refresh_gauge(self, telemetry):
+        dev_info = self.find_channel_from_telemetry(telemetry)
+        if dev_info is not None:
+            self.flow_to_ptp_offset_prim_gauge.set(dev_info["flow_to_ptp_offset"]["primary"])
+            self.flow_to_ptp_offset_sec_gauge.set(dev_info["flow_to_ptp_offset"]["secondary"])
+        else:
+            self.sdi_to_ptp_offset_gauge.set(-1)
 
 class SignalDeviceMonitor():
     def find_channel_from_telemetry(self, telemetry):
