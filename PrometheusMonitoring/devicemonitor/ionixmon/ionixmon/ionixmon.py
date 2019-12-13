@@ -4,8 +4,6 @@
 # Unless required by applicable law or agreed to in writing, software
 # distributed under the License is distributed on an "AS IS" BASIS,
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-
-
 from flask import Flask, render_template, flash, request, send_file, make_response
 from wtforms import Form, TextField, TextAreaField, validators, StringField, SubmitField
 from io import StringIO
@@ -18,20 +16,25 @@ import re
 import time
 import os
 import datetime
+import subprocess
 docker_client = docker.from_env()
 app = Flask(__name__)
 
+METRICS_PORTS_RANGE_START = 10600
+METRICS_PORTS_RANGE_END = 11600
 
 class MonitoringInformation():
     TELEMETRY_URL = "/emsfp/node/v1/telemetry"
     SYSLOG_URL = "/emsfp/node/v1/self/syslog"
     
-    def __init__(self, ip, prettyName):
+    def __init__(self, ip, prettyName, metricsPort):
         self.ip = ip
         self.prettyName = prettyName
+        self.metricsPort = metricsPort
         self.prometheus_status = "NA"
         self.telemetryAvailable = self.IsTelemetryAvailable()
         self.syslogAvailable = self.IsSyslogAvailable()
+        self.monitorThread = self.StartMonitorThread()
 
     def IsSyslogAvailable(self):
         try:
@@ -54,7 +57,13 @@ class MonitoringInformation():
             return True
         else:
             return False
-            
+
+    def StartMonitorThread(self):
+        if self.telemetryAvailable:
+            return subprocess.Popen(["python3", "/opt/ionixmon/prometheus_interface/telemetry_monitor.py", "--ip",  self.ip, "--port", str(self.metricsPort), "--prettyName", self.prettyName])
+        else:
+            return subprocess.Popen(["python3", "/opt/ionixmon/prometheus_interface/rest_monitor.py", "--ip",  self.ip, "--port", str(self.metricsPort), "--prettyName", self.prettyName])
+        
     def ApplySyslogConfig(self, syslogCfg):
         jsonCfg = {}
         
@@ -151,6 +160,10 @@ def ApplySyslogConfigToAllUnits(syslogCfg):
         if device.syslogAvailable:
             device.ApplySyslogConfig(syslogCfg)
 
+def SaveConfig(data, configFile="config.json"):
+    with open(configFile, 'w') as outfile:
+        json.dump(data, outfile)
+
 def LoadConfig(configFile="config.json"):
     if os.path.exists(configFile):
         # Load Config...
@@ -204,11 +217,6 @@ def GenerateConfigDataFromRequest(requestForm):
     return save_data
 
 
-def SaveConfig(data, configFile="config.json"):
-    with open(configFile, 'w') as outfile:
-        json.dump(data, outfile)
-
-
 def RefreshMonitoredDevices():
     for dev in monitored_devices:
         status = prometheus_server.get_info_for_target(dev.prettyName)
@@ -218,32 +226,32 @@ def RefreshMonitoredDevices():
             dev.prometheus_status = status["health"]
 
 
-def RemoveMonitor(containerName):
-    # Remove from Docker...
-    try:
-        container_instance = docker_client.containers.get(containerName)
-        container_instance.stop()
-        container_instance.remove()
-        
-    except Exception as e:
-        app.logger.warning("Could not remove container: " + str(containerName) + " Error message: " + str(e))
-    
-    RemoveFromPrometheus(containerName)
+def RemoveMonitor(deviceName):
+    RemoveFromPrometheus(deviceName)
     
     # Remove from monitored devices...
     try:
         for device in monitored_devices:
-            if device.prettyName == containerName:
+            if device.prettyName == deviceName:
+                device.monitorThread.kill()
                 monitored_devices.remove(device)
                 break
-    except:
-        app.logger.error("Could not remove: " + str(containerName))
+    except Exception as e:
+        app.logger.error("Could not remove: " + str(deviceName) + ".  Error: " + str(e))
 
 
 def GetDeviceByName(devName):
     for device in monitored_devices:
         if device.prettyName == devName:
             return device
+    return None
+
+def FindNextFreeMetricsPort():
+    for checkedPort in range(METRICS_PORTS_RANGE_START, METRICS_PORTS_RANGE_END):
+        for device in monitored_devices:
+            if checkedPort == device.metricsPort:
+                break
+        return checkedPort
     return None
 
 
@@ -330,19 +338,9 @@ def MainPage():
     if request.method == 'POST' and "addDevice" in request.form:
         deviceIp = request.form['deviceIp']
         deviceName = request.form['deviceName']
-        newDev = MonitoringInformation(deviceIp, deviceName)
+        port = FindNextFreeMetricsPort()
+        newDev = MonitoringInformation(deviceIp, deviceName, port)
         monitored_devices.append(newDev)
-        app.logger.warning("Device IP: " + str(newDev.ip) + " Device name: " + str(newDev.prettyName))
-        
-        script_name = "telemetry_monitor.py" if newDev.telemetryAvailable else "rest_monitor.py"
-        docker_client.containers.run("prometheus_interface", 
-            environment = ["deviceip="+deviceIp, "port=10600", "prettyName="+deviceName, "monitorScriptName=" + script_name], 
-            name=deviceName,
-            detach=True, 
-            volumes={'grafana_to_monitor': {'bind': '/home/to_monitor/', 'mode': 'rw'}}, 
-            publish_all_ports=True,
-            network="grafana_bridge_net")
-            
         newDev.ApplySyslogConfig(config)
         
         return render_template('index.html', monitoredDevices=monitored_devices)
@@ -387,21 +385,13 @@ def MainPage():
 
 if __name__ == '__main__':
     config = LoadConfig()
-    image_id = docker_client.images.get("prometheus_interface:latest").id
-    for container in docker_client.containers.list():
-        if container.image.id == image_id:
-            devIp = None
-            env = container.attrs["Config"]["Env"]
-            for kv in env:
-                key = kv.split("=")[0]
-                if key == "deviceip":
-                    devIp = kv.split("=")[1]
-            if devIp is not None:
-                app.logger.warning("Adding an already present monitor container: " + container.name)
-                newDev = MonitoringInformation(devIp, container.name)
-                newDev.ApplySyslogConfig(config)
-                monitored_devices.append(newDev)
-            else:
-                app.logger.warning("Could not add container: " + container.name)
+    for targetName in prometheus_server.get_all_prometheus_targets_names():
+        target = prometheus_server.get_info_for_target(targetName)
+        target_ip = target["labels"]["device_ip"]
+        target_name = target["labels"]["job"]
+        target_port = target["labels"]["instance"].split(":")[1]
+        newDev = MonitoringInformation(target_ip, target_name, target_port)
+        newDev.ApplySyslogConfig(config)
+        monitored_devices.append(newDev)
 
     app.run(host='0.0.0.0', port=8060)
