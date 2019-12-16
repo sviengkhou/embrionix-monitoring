@@ -97,17 +97,25 @@ class MonitoringInformation():
     def set_config(self, url, json_config, ignore_error=False, timeout=5, retry_interval=1, retry_max=5):
         app.logger.warning(str(url))
         retry_count = 0
-        r = requests.put(url, json=json_config, timeout=timeout)
+        try:
+            r = requests.put(url, json=json_config, timeout=timeout)
+        except Exception as e:
+            app.logger.warning("Could not apply config on " + str(url) + " Error: " + str(e))
 
         while retry_count < retry_max:
-            if r.status_code == 200:
-                return r.status_code
-            else:
+            try:
+                if r.status_code == 200:
+                    return r.status_code
+                else:
+                    retry_count += 1
+                    if not ignore_error:
+                        print("PUT failed, retrying in a second...")
+                        time.sleep(retry_interval)
+                r = requests.put(url, json=json_config, timeout=timeout)
+            except Exception as e:
+                app.logger.warning("Could not apply config on " + str(url) + " Error: " + str(e))
                 retry_count += 1
-                if not ignore_error:
-                    print("PUT failed, retrying in a second...")
-                    time.sleep(retry_interval)
-            r = requests.put(url, json=json_config, timeout=timeout)
+                time.sleep(retry_interval)
         return r.status_code
 
 
@@ -246,12 +254,15 @@ def GetDeviceByName(devName):
             return device
     return None
 
+
 def FindNextFreeMetricsPort():
     for checkedPort in range(METRICS_PORTS_RANGE_START, METRICS_PORTS_RANGE_END):
+        in_use = False
         for device in monitored_devices:
             if checkedPort == device.metricsPort:
-                break
-        return checkedPort
+                in_use = True
+        if not in_use:
+            return checkedPort
     return None
 
 
@@ -339,7 +350,7 @@ def MainPage():
         deviceIp = request.form['deviceIp']
         deviceName = request.form['deviceName']
         port = FindNextFreeMetricsPort()
-        newDev = MonitoringInformation(deviceIp, deviceName, port)
+        newDev = MonitoringInformation(deviceIp, deviceName, int(port))
         monitored_devices.append(newDev)
         newDev.ApplySyslogConfig(config)
         
@@ -390,7 +401,7 @@ if __name__ == '__main__':
         target_ip = target["labels"]["device_ip"]
         target_name = target["labels"]["job"]
         target_port = target["labels"]["instance"].split(":")[1]
-        newDev = MonitoringInformation(target_ip, target_name, target_port)
+        newDev = MonitoringInformation(target_ip, target_name, int(target_port))
         newDev.ApplySyslogConfig(config)
         monitored_devices.append(newDev)
 
