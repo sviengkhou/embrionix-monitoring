@@ -113,10 +113,10 @@ def get_core_and_fan_speed(ip, temp_gauge, fan_gauge):
         fan_gauge.set(-1)
 
 
-def register_on_prometheus(pretty_name, path="/home/to_monitor"):
+def register_on_prometheus(pretty_name, device_ip, port, path="/home/to_monitor"):
     local_ip = socket.gethostbyname(socket.gethostname())
     print("Container IP: " + str(local_ip))
-    json_data = '[{"labels": {"job": "' + pretty_name + '"},"targets": ["' + local_ip + ':10600"]}]'
+    json_data = '[{"labels": {"job": "' + pretty_name + '", "device_ip": "' + device_ip + '"},"targets": ["' + local_ip + ':' + str(port) + '"]}]'
     print("Prometheus data: " + json_data)
     file = open(path + "/" + pretty_name + ".json", "w")
     file.write(json_data)
@@ -196,7 +196,7 @@ if __name__ == '__main__':
             channel += 1
             
     print("Registering on Prometheus...")
-    register_on_prometheus(args.prettyName)
+    register_on_prometheus(args.prettyName, args.ip, args.port)
 
     print("Discovered flows:")
     print(str(table))

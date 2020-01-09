@@ -124,14 +124,19 @@ class PrometheusServer():
         self.host = host
         self.port = port
 
-    def get_all_prometheus_targets_names(self):
-        r = requests.get("http://" + self.host + ":" + str(self.port) + "/api/v1/targets", timeout=2)
-        names = []
-
-        for target in r.json()["data"]["activeTargets"]:
-            names.append(target["discoveredLabels"]["job"])
-
-        return names
+    def get_all_prometheus_targets_names(self, retry_delay=2):
+        while True:  # Retrying infinitely, we cannot operate without Prometheus anyway...
+            try:
+                r = requests.get("http://" + self.host + ":" + str(self.port) + "/api/v1/targets", timeout=2)
+                names = []
+        
+                for target in r.json()["data"]["activeTargets"]:
+                    names.append(target["discoveredLabels"]["job"])
+        
+                return names
+            except:
+                app.logger.warning("Could not reach Prometheus...  Retrying in 2 seconds")
+                time.sleep(retry_delay)
 
     def get_orphan_prometheus_targets(self, currently_monitored_names):
         targets = self.get_all_prometheus_targets_names()
