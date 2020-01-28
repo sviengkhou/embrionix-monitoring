@@ -60,8 +60,10 @@ class MonitoringInformation():
 
     def StartMonitorThread(self):
         if self.telemetryAvailable:
+            app.logger.warning("Starting a telemetry thread")
             return subprocess.Popen(["python3", "/opt/ionixmon/prometheus_interface/telemetry_monitor.py", "--ip",  self.ip, "--port", str(self.metricsPort), "--prettyName", self.prettyName])
         else:
+            app.logger.warning("Starting a rest monitor thread")
             return subprocess.Popen(["python3", "/opt/ionixmon/prometheus_interface/rest_monitor.py", "--ip",  self.ip, "--port", str(self.metricsPort), "--prettyName", self.prettyName])
         
     def ApplySyslogConfig(self, syslogCfg):
@@ -91,8 +93,10 @@ class MonitoringInformation():
         jsonCfg["monitoring"]["decap"]["dash7_fifo_error"] = True if "dash7_fifo_error" in syslogCfg else False
         
         app.logger.warning("Cfg: " + str(jsonCfg))
-        
-        self.set_config("http://" + self.ip + self.SYSLOG_URL, jsonCfg)
+        try:
+            self.set_config("http://" + self.ip + self.SYSLOG_URL, jsonCfg)
+        except Exception as e:
+            app.logger.warning("Could not apply syslog config on " + str(self.ip) + " Error: " + str(e))
 
     def set_config(self, url, json_config, ignore_error=False, timeout=5, retry_interval=1, retry_max=5):
         app.logger.warning(str(url))
@@ -117,6 +121,13 @@ class MonitoringInformation():
                 retry_count += 1
                 time.sleep(retry_interval)
         return r.status_code
+
+    def is_monitor_thread_still_alive(self):
+        if self.monitorThread.poll() is None:
+            # None value indicates the thread is still running.
+            return True
+        else:
+            return False
 
 
 class PrometheusServer():
@@ -398,6 +409,13 @@ def MainPage():
         app.logger.warning("Got: " + str(request.method))
         return render_template('index.html')
 
+def SubProcessCheckMonitorThreads():
+    while True:
+        for monitor in monitored_devices:
+            if not monitor.is_monitor_thread_still_alive():
+                app.logger.warning("Thread stopped!!")
+    time.sleep(10)  # TODO: Parameterize/Validate delay value...
+
 
 if __name__ == '__main__':
     config = LoadConfig()
@@ -410,4 +428,5 @@ if __name__ == '__main__':
         newDev.ApplySyslogConfig(config)
         monitored_devices.append(newDev)
 
+    thread.start_new_thread(SubProcessCheckMonitorThreads)
     app.run(host='0.0.0.0', port=8060)

@@ -21,9 +21,7 @@ REQUEST_TIME = Summary('request_processing_seconds', 'Time spent processing requ
 
 def register_on_prometheus(pretty_name, device_ip, port, path="/home/to_monitor"):
     local_ip = socket.gethostbyname(socket.gethostname())
-    print("Container IP: " + str(local_ip))
     json_data = '[{"labels": {"job": "' + pretty_name + '", "device_ip": "' + device_ip + '"},"targets": ["' + local_ip + ':' + str(port) + '"]}]'
-    print("Prometheus data: " + json_data)
     file = open(path + "/" + pretty_name + ".json", "w")
     file.write(json_data)
     file.close()
@@ -39,7 +37,6 @@ class TelemetryCapabilities():
 
 class SfpMonitor():
     def __init__(self, port_num):
-        print("in sfp_monitors init")
         self.port_num = port_num
         self.sfp_temperature = Gauge('sfp_temperature_p' + str(port_num), 'Temperature of SFP in port ' + str(port_num))
         self.sfp_vcc = Gauge('sfp_vcc_p' + str(port_num), 'VCC voltage')
@@ -47,6 +44,9 @@ class SfpMonitor():
         self.sfp_rxpwr = Gauge('sfp_rxpwr_p' + str(port_num), 'SFP Rx Power')
 
 class SignalDeviceMonitor():
+    def __init__(self, telemetry):
+        self.channel_num = telemetry["channel"]
+
     def find_channel_from_telemetry(self, telemetry):
         for device in telemetry["devices"]:
             # TODO: Rely on channel number when 3.0 is officially released.  This will not work for 
@@ -58,10 +58,8 @@ class SignalDeviceMonitor():
 
 class EncapDeviceMonitor(SignalDeviceMonitor):
     def __init__(self, device_info):
-        # TODO: Rely on channel number when 3.0 is officially released.  This will not work for 
-        # NMOS loads...
-        self.channel_num = device_info["device"][0]
         self.sdi_to_ptp_offset_gauge = None
+        super().__init__(device_info)
         self.create_gauge()
         
     def create_gauge(self):
@@ -77,9 +75,9 @@ class EncapDeviceMonitor(SignalDeviceMonitor):
 
 class DecapDeviceMonitor(SignalDeviceMonitor):
     def __init__(self, device_info):
-        self.channel_num = device_info["device"][0]
         self.flow_to_ptp_offset_prim_gauge = None
         self.flow_to_ptp_offset_sec_gauge = None
+        super().__init__(device_info) 
         self.create_gauge()
         
     def create_gauge(self):
@@ -101,17 +99,23 @@ class FlowMonitor():
         self.seq_err_gauge = None
         self.channel = channel
         self.dev_type = dev_type
-        
-        self.essence = FlowType.UNKNOWN
-        if essence == "video":
-            self.essence = FlowType.VIDEO_2110
-        elif essence == "audio":
-            self.essence = FlowType.AUDIO_2110
-        elif essence == "ancillary":
-            self.essence = FlowType.ANCIL_2110
+        self.essence = self.convert_essence_name_to_num(essence)
         
         self.isPrimary = isPrimary
         self.create_gauges()
+
+    def convert_essence_name_to_num(self, essence_string):
+        essence = FlowType.UNKNOWN
+        
+        if essence_string == "video":
+            essence = FlowType.VIDEO_2110
+        elif essence_string == "audio":
+            essence = FlowType.AUDIO_2110
+        elif essence_string == "ancillary":
+            essence = FlowType.ANCIL_2110
+
+        return essence
+
 
     def create_gauges(self):
         pkt_cnt_gauge_name = 'ch' + str(self.channel) + '_' + FlowType.get_flow_type_name(self.essence) + ('_prim' if self.isPrimary else '_sec') + '_pkt_cnt'
@@ -126,9 +130,9 @@ class FlowMonitor():
             
     def refresh_gauges(self, telemetry):
         for device in telemetry["devices"]:
-            if device["device"][0] == self.channel:
-                for engine in engines:
-                    if engine["essence"] == self.essence:
+            if str(device["channel"]) == str(self.channel):
+                for engine in device["engines"]:
+                    if self.convert_essence_name_to_num(engine["essence"]) == self.essence:
                         for flow in engine["flows"]:
                             if (self.isPrimary and flow["type"] == "primary") or (not self.isPrimary and flow["type"] == "secondary"):
                                 self.pkt_cnt_gauge.set(flow["pkt_cnt"])
@@ -207,30 +211,34 @@ class TelemetryApi():
 
                     if essence == "audio":
                         newGauge = AudioFlowMonitor(channel_num, dev_type, essence, isPrimary, audio_index)
+                        self.flows_monitors.append(newGauge)
                         audio_index += 1
                     else:
                         newGauge = FlowMonitor(channel_num, dev_type, essence, isPrimary)
+                        self.flows_monitors.append(newGauge)
                     
 
     def scan_capabilities(self):
-        telemetry = self.read_telemetry()
+        telemetry_node = self.read_telemetry("node")
+        telemetry_ports = self.read_telemetry("ports")
+        telemetry_devices = self.read_telemetry("devices")
         
-        if "health" in telemetry:
+        if "health" in telemetry_node:
             self.capabilites.health = True
             self._init_health_gauges()
 
-        if "refclk" in telemetry:
+        if "refclk" in telemetry_node:
             self.capabilites.ptp_monitor = True
             self._init_refclk_gauges()
-            self._init_devices_gauges(telemetry)
 
-        if "mngt_port" in telemetry:
-            self._init_sfp_monitor_gauges(telemetry)
+        if "mngt_port" in telemetry_ports:
+            self._init_sfp_monitor_gauges(telemetry_ports)
             self.capabilites.sfp_monitor = True
             
-        if "devices" in telemetry:
-            self._init_flows_monitor_gauges(telemetry)
-            self.capabilites.flows = True            
+        if "devices" in telemetry_devices:
+            self._init_flows_monitor_gauges(telemetry_devices)
+            self._init_devices_gauges(telemetry_devices)
+            self.capabilites.flows = True
 
     def refresh_health(self, telemetry):
         try:
@@ -244,7 +252,10 @@ class TelemetryApi():
             
     def refresh_refclk(self, telemetry):
         try:
-            self.gauge_ptp_state.set(telemetry["refclk"]["status"])
+            if telemetry["refclk"]["status"] == "unlocked":
+                self.gauge_ptp_state.set(0)
+            else:
+                self.gauge_ptp_state.set(3)
             self.gauge_ptp_offset_from_master.set(telemetry["refclk"]["offset_from_master"])
             self.gauge_ptp_mean_delay.set(telemetry["refclk"]["mean_delay"])
         except:
@@ -271,19 +282,28 @@ class TelemetryApi():
             sfp_gauges.sfp_rxpwr.set(sfp_info["rx_power"])
 
     def refresh(self):
-        telemetry = self.read_telemetry()
-        if telemetry is not None:
-            if self.capabilites.health:
-                self.refresh_health(telemetry)
-            if self.capabilites.ptp_monitor:
-                self.refresh_refclk(telemetry)
-                self.refresh_devices(telemetry)
-            if self.capabilites.sfp_monitor:
-                self.refresh_sfp_monitor(telemetry)
+        telemetry_node = self.read_telemetry("node")
+        telemetry_ports = self.read_telemetry("ports")
+        telemetry_devices = self.read_telemetry("devices")
 
-    def read_telemetry(self):
+        if telemetry_node is not None:
+            if self.capabilites.health:
+                self.refresh_health(telemetry_node)
+            if self.capabilites.ptp_monitor:
+                self.refresh_refclk(telemetry_node)
+        
+        if telemetry_devices is not None:
+            self.refresh_devices(telemetry_devices)
+            for flow in self.flows_monitors:
+                flow.refresh_gauges(telemetry_devices)
+        
+        if telemetry_ports is not None:
+            if self.capabilites.sfp_monitor:
+                self.refresh_sfp_monitor(telemetry_ports)
+
+    def read_telemetry(self, section):
         try:
-            r = requests.get("http://" + self.ip + self.TELEMETRY_URL, timeout=2)
+            r = requests.get("http://" + self.ip + self.TELEMETRY_URL + "/" + section, timeout=2)
         except:
             return None
         if r.status_code == 200:
@@ -312,11 +332,12 @@ if __name__ == '__main__':
     api_read_time = Gauge('api_read_time', 'REST api total time for all calls')
     
     print("Registering on Prometheus...")
-    register_on_prometheus(args.prettyName, args.ip, args.port)
+    #register_on_prometheus(args.prettyName, args.ip, args.port)
     
+    print("Starting main loop...")
     while True:
         start_time = time.time()
         telemetry.refresh()
         
         api_read_time.set(time.time() - start_time)
-        time.sleep(interval)
+        time.sleep(int(interval))
