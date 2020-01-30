@@ -18,7 +18,7 @@ Metrics are shown on monitor docker container ip port 10600.
 
 ## Prerequisites
 * [Docker](https://www.docker.com/products/docker-desktop)
-* [Docker-Compose](https://docs.docker.com/compose/install/) version >= 3.5
+* [Docker-Compose](https://docs.docker.com/compose/install/) (Compose version >= 1.18.0 for yml definition version >= 3.5)
 * Internet access for deployment (In order to fetch Docker images)	
 
 ## Quick start
