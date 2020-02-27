@@ -428,5 +428,5 @@ if __name__ == '__main__':
         newDev.ApplySyslogConfig(config)
         monitored_devices.append(newDev)
 
-    thread.start_new_thread(SubProcessCheckMonitorThreads)
+    #thread.start_new_thread(SubProcessCheckMonitorThreads)
     app.run(host='0.0.0.0', port=8060)
