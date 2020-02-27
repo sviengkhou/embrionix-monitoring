@@ -181,7 +181,7 @@ if __name__ == '__main__':
                 seq_err_gauge_name = 'ch' + str(channel.index) + '_' + FlowType.get_flow_type_name(flow.type) + ('_prim' if flow.isPrimary else '_sec') + '_seq_err'
 
             flow.pkt_cnt = Gauge(pkt_cnt_gauge_name, 'Packet Count')
-            if flow.dir == FlowDir.TX:
+            if flow.dir == FlowDir.RX:
                 flow.seq_errs = Gauge(seq_err_gauge_name, 'Packet Count')
             
     print("Registering on Prometheus...")
