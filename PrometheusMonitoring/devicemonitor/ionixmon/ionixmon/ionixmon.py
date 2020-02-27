@@ -17,6 +17,7 @@ import time
 import os
 import datetime
 import subprocess
+import threading
 docker_client = docker.from_env()
 app = Flask(__name__)
 
@@ -60,10 +61,8 @@ class MonitoringInformation():
 
     def StartMonitorThread(self):
         if self.telemetryAvailable:
-            app.logger.warning("Starting a telemetry thread")
             return subprocess.Popen(["python3", "/opt/ionixmon/prometheus_interface/telemetry_monitor.py", "--ip",  self.ip, "--port", str(self.metricsPort), "--prettyName", self.prettyName])
         else:
-            app.logger.warning("Starting a rest monitor thread")
             return subprocess.Popen(["python3", "/opt/ionixmon/prometheus_interface/rest_monitor.py", "--ip",  self.ip, "--port", str(self.metricsPort), "--prettyName", self.prettyName])
         
     def ApplySyslogConfig(self, syslogCfg):
@@ -411,10 +410,11 @@ def MainPage():
 
 def SubProcessCheckMonitorThreads():
     while True:
+        time.sleep(10)  # TODO: Parameterize/Validate delay value...
         for monitor in monitored_devices:
             if not monitor.is_monitor_thread_still_alive():
+                monitor.monitorThread = monitor.StartMonitorThread()
                 app.logger.warning("Thread stopped!!")
-    time.sleep(10)  # TODO: Parameterize/Validate delay value...
 
 
 if __name__ == '__main__':
@@ -427,6 +427,7 @@ if __name__ == '__main__':
         newDev = MonitoringInformation(target_ip, target_name, int(target_port))
         newDev.ApplySyslogConfig(config)
         monitored_devices.append(newDev)
-
-    #thread.start_new_thread(SubProcessCheckMonitorThreads)
-    app.run(host='0.0.0.0', port=8060)
+        
+        monitor_thread = threading.Thread(target=SubProcessCheckMonitorThreads)
+        monitor_thread.start()
+        app.run(host='0.0.0.0', port=8060)
