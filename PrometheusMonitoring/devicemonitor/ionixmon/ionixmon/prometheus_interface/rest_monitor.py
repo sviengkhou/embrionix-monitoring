@@ -8,6 +8,7 @@
 from prometheus_client import start_http_server, Summary, Gauge, Info
 from prettytable import PrettyTable
 from emflow import FlowDir, FlowType, EmFlow
+from emdevice import EmDevice
 import time
 import requests
 import argparse
@@ -163,40 +164,28 @@ if __name__ == '__main__':
     print("Scanning Flows...")
     table = PrettyTable()
     table.field_names = ["UUID", "Type", "Dir", "Redundancy", "Chan"]
-    uuid_list = get_flows_list(args.ip)
-    flows = []
-    channel = 1  # 1 Based channel, to be consistent with device ports numbering...
-    audio_index = 0
-    for i, uuid in enumerate(uuid_list):
-        newFlow = EmFlow(args.ip, uuid.replace("/", ""), i, channel)
+    
+    device = EmDevice(args.ip)
+    
+    for channel in device.channels:
+        audio_index = 0
+        for flow in channel.flows:
+            table.add_row([flow.uuid, FlowType.get_flow_type_name(flow.type), FlowDir.get_flow_dir_name(flow.dir), "Primary" if flow.isPrimary else "Secondary", str(channel.index)])
+            if flow.type == FlowType.AUDIO_2110:
+                pkt_cnt_gauge_name = 'ch' + str(channel.index) + '_' + FlowType.get_flow_type_name(flow.type) + "_" + str(audio_index) + ('_prim' if flow.isPrimary else '_sec') + '_pkt_cnt'
+                seq_err_gauge_name = 'ch' + str(channel.index) + '_' + FlowType.get_flow_type_name(flow.type) + "_" + str(audio_index) + ('_prim' if flow.isPrimary else '_sec') + '_seq_err'
+                if not flow.isPrimary:
+                    audio_index += 1
+            else:
+                pkt_cnt_gauge_name = 'ch' + str(channel.index) + '_' + FlowType.get_flow_type_name(flow.type) + ('_prim' if flow.isPrimary else '_sec') + '_pkt_cnt'
+                seq_err_gauge_name = 'ch' + str(channel.index) + '_' + FlowType.get_flow_type_name(flow.type) + ('_prim' if flow.isPrimary else '_sec') + '_seq_err'
 
-        if newFlow.type == FlowType.ANCIL_2110:
-            audio_index = 0
-
-        pkt_cnt_gauge_name = ""
-        seq_err_gauge_name = ""
-        print(uuid)
-        if newFlow.type == FlowType.AUDIO_2110:
-            pkt_cnt_gauge_name = 'ch' + str(newFlow.channel) + '_' + FlowType.get_flow_type_name(newFlow.type) + "_" + str(audio_index) + ('_prim' if newFlow.isPrimary else '_sec') + '_pkt_cnt'
-            seq_err_gauge_name = 'ch' + str(newFlow.channel) + '_' + FlowType.get_flow_type_name(newFlow.type) + "_" + str(audio_index) + ('_prim' if newFlow.isPrimary else '_sec') + '_seq_err'
-            if not newFlow.isPrimary:
-                audio_index += 1
-        else:
-            pkt_cnt_gauge_name = 'ch' + str(newFlow.channel) + '_' + FlowType.get_flow_type_name(newFlow.type) + ('_prim' if newFlow.isPrimary else '_sec') + '_pkt_cnt'
-            seq_err_gauge_name = 'ch' + str(newFlow.channel) + '_' + FlowType.get_flow_type_name(newFlow.type) + ('_prim' if newFlow.isPrimary else '_sec') + '_seq_err'
-
-        newFlow.pkt_cnt = Gauge(pkt_cnt_gauge_name, 'Packet Count')
-        if newFlow.dir == FlowDir.TX:
-            newFlow.seq_errs = Gauge(seq_err_gauge_name, 'Packet Count')
-        flows.append(newFlow)
-        table.add_row([newFlow.uuid, FlowType.get_flow_type_name(newFlow.type), FlowDir.get_flow_dir_name(newFlow.dir), "Primary" if newFlow.isPrimary else "Secondary",
-                       str(channel)])
-        
-        if newFlow.isPrimary is False and newFlow.type == FlowType.ANCIL_2110:
-            channel += 1
+            flow.pkt_cnt = Gauge(pkt_cnt_gauge_name, 'Packet Count')
+            if flow.dir == FlowDir.TX:
+                flow.seq_errs = Gauge(seq_err_gauge_name, 'Packet Count')
             
     print("Registering on Prometheus...")
-    register_on_prometheus(args.prettyName, args.ip, args.port)
+    #register_on_prometheus(args.prettyName, args.ip, args.port)
 
     print("Discovered flows:")
     print(str(table))
@@ -210,10 +199,11 @@ if __name__ == '__main__':
         monitor_sfp_port(args.ip, 5, sfp_p5_temperature, sfp_p5_vcc, sfp_p5_txpwr, sfp_p5_rxpwr)
         monitor_ptp(args.ip, ptp_state, ptp_offset_from_master, ptp_mean_delay)
         get_core_and_fan_speed(args.ip, core_temp_gauge, fan_speed_gauge)
-    
-        for flow in flows:
-            flow.update_pkt_cnt()
-            flow.update_seq_err()
+        
+        for channel in device.channels:
+            for flow in channel.flows:
+                flow.update_pkt_cnt()
+                flow.update_seq_err()
     
         api_read_time.set(time.time() - start_time)
         time.sleep(interval)
