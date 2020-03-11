@@ -107,11 +107,20 @@ def get_core_and_fan_speed(ip, temp_gauge, fan_gauge):
     try:
         r = requests.get("http://" + ip + "/emsfp/node/v1/self/system", timeout=2)
         json_resp = r.json()
-        temp_gauge.set(json_resp["core_temp"])
-        fan_gauge.set(json_resp["fan_speed"])
     except:
         temp_gauge.set(-1)
         fan_gauge.set(-1)
+
+    try:
+        temp_gauge.set(json_resp["core_temp"])
+    except:
+        temp_gauge.set(-1)
+
+    try:
+        fan_gauge.set(json_resp["fan_speed"])
+    except:
+        fan_gauge.set(-1)
+
 
 
 def register_on_prometheus(pretty_name, device_ip, port, path="/home/to_monitor"):
@@ -185,7 +194,7 @@ if __name__ == '__main__':
                 flow.seq_errs = Gauge(seq_err_gauge_name, 'Packet Count')
             
     print("Registering on Prometheus...")
-    register_on_prometheus(args.prettyName, args.ip, args.port)
+    #register_on_prometheus(args.prettyName, args.ip, args.port)
 
     print("Discovered flows:")
     print(str(table))
