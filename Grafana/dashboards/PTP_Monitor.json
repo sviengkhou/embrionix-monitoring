@@ -15,7 +15,6 @@
   "editable": true,
   "gnetId": null,
   "graphTooltip": 0,
-  "id": 4,
   "links": [],
   "panels": [
     {
@@ -283,7 +282,7 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "ptp_offset_from_master",
+          "expr": "ptp_mean_delay",
           "format": "time_series",
           "intervalFactor": 1,
           "refId": "A"
@@ -293,7 +292,7 @@
       "timeFrom": null,
       "timeRegions": [],
       "timeShift": null,
-      "title": "PTP Main Delay",
+      "title": "PTP Mean Delay",
       "tooltip": {
         "shared": true,
         "sort": 0,
@@ -363,7 +362,7 @@
       "type": "alertlist"
     }
   ],
-  "refresh": false,
+  "refresh": "5s",
   "schemaVersion": 18,
   "style": "dark",
   "tags": [],
@@ -371,7 +370,7 @@
     "list": []
   },
   "time": {
-    "from": "now-6h",
+    "from": "now-5m",
     "to": "now"
   },
   "timepicker": {

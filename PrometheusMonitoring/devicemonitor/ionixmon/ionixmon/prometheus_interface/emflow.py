@@ -41,35 +41,18 @@ class FlowType():
 
 
 class EmFlow:
-    def __init__(self, mgmt_ip, uuid, flowIndex, channel):
-        self.dir = FlowDir.RX
+    def __init__(self, mgmt_ip, uuid, channel, isPrimary, isRx):
+        self.dir = FlowDir.RX if isRx else FlowDir.TX
         self.type = FlowType.VIDEO_2110
         self.uuid = uuid
         self.mgmt_ip = mgmt_ip
         self.isQuad = False
-        self.isPrimary = False
+        self.isPrimary = isPrimary
         self.pkt_cnt = None
         self.seq_errs = None
-        self.channel = channel
 
         self._check_if_quad()
-        self._get_direction()
         self._get_type()
-        
-        # Primary/Secondary flow detection, cannot find a better way to do it...
-        if self.type == FlowType.VIDEO_2022:
-            if flowIndex <= 1:
-                self.isPrimary = True
-            else:
-                self.isPrimary = False
-                
-            if uuid[0] == 'a' or uuid[0] == 'b':
-                self.channel = 1
-            else:
-                self.channel = 2
-        else:
-            if flowIndex % 2 == 0:
-                self.isPrimary = True
 
     def _check_if_quad(self):
         cfg = self.get_flow_config()
@@ -77,16 +60,6 @@ class EmFlow:
             self.isQuad = True
         else:
             self.isQuad = False
-
-    def _get_direction(self):
-        if self.isQuad:
-            self.dir = FlowDir.TX  # Quads are automatically decapsulators
-        else:
-            cfg = self.get_flow_config()
-            if "pkt_filter_src_ip" in cfg["network"]:
-                self.dir = FlowDir.TX  # If we have netfilters settings, we are on a decap flow...
-            else:
-                self.dir = FlowDir.RX
 
     def _get_type(self):
         cfg = self.get_flow_config()
@@ -102,7 +75,6 @@ class EmFlow:
             self.type = FlowType.UNKNOWN
 
     def get_flow_config(self):
-        r = requests.get("http://" + self.mgmt_ip + "/emsfp/node/v1/flows/" + self.uuid, timeout=2)
         try:
             r = requests.get("http://" + self.mgmt_ip + "/emsfp/node/v1/flows/" + self.uuid, timeout=2)
         except:

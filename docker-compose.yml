@@ -39,6 +39,8 @@ services:
         build: PrometheusMonitoring/devicemonitor/ionixmon/.
         ports:
             - "8060:8060"
+        depends_on:
+            - prometheus
         volumes:
             - /var/run/docker.sock:/var/run/docker.sock
             - to_monitor:/home/to_monitor

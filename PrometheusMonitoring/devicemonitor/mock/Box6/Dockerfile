@@ -7,9 +7,9 @@
 
 # How to use the mock:
 # docker build -t box6_mock .
-# docker run -d --network="graphicmonitor_bridge_net"  box6_mock
+# docker run -d --network="grafana_bridge_net"  box6_mock
 # get ip and use it as your device in Ionixmon with:
-# docker network inspect graphicmonitor_default
+# docker network inspect grafana_bridge_net
 
 FROM alpine:latest
 
