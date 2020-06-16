@@ -430,4 +430,4 @@ if __name__ == '__main__':
         
         monitor_thread = threading.Thread(target=SubProcessCheckMonitorThreads)
         monitor_thread.start()
-        app.run(host='0.0.0.0', port=8060)
+    app.run(host='0.0.0.0', port=8060)
