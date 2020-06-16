@@ -22,11 +22,7 @@ Metrics are shown on monitor docker container ip port 10600.
 * Internet access for deployment (In order to fetch Docker images)	
 
 ## Quick start
-1. From the checkout folder (At the same level as the docker-compose.yml file), run :
-```bash
-docker build -t prometheus_interface PrometheusMonitoring/devicemonitor/prometheus_interface
-```
-2. From the same folder as in previous step, build the monitoring docker image, run :
+1. From the same folder as in previous step, build the monitoring docker image, run :
 ```bash
 docker-compose up -d --build
 ```
