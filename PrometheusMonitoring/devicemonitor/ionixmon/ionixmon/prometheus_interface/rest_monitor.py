@@ -201,7 +201,7 @@ if __name__ == '__main__':
                 flow.seq_errs = Gauge(seq_err_gauge_name, 'Packet Count')
             
     print("Registering on Prometheus...")
-    #register_on_prometheus(args.prettyName, args.ip, args.port)
+    register_on_prometheus(args.prettyName, args.ip, args.port)
 
     print("Discovered flows:")
     print(str(table))

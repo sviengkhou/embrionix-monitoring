@@ -15,6 +15,7 @@ import prettytable
 import os
 import json
 import socket
+import string
 
 # Create a metric to track time spent and requests made.
 REQUEST_TIME = Summary('request_processing_seconds', 'Time spent processing request')
@@ -49,9 +50,8 @@ class SignalDeviceMonitor():
 
     def find_channel_from_telemetry(self, telemetry):
         for device in telemetry["devices"]:
-            # TODO: Rely on channel number when 3.0 is officially released.  This will not work for 
-            # NMOS loads...
-            if int(device["device"][0]) == int(self.channel_num):
+            device_num = int(device["device"][0]) if device["device"][0].isdigit() else string.ascii_lowercase.index(device["device"][0])
+            if device_num == int(self.channel_num):
                 return device
         return None
 
@@ -67,7 +67,7 @@ class EncapDeviceMonitor(SignalDeviceMonitor):
         
     def refresh_gauge(self, telemetry):
         dev_info = self.find_channel_from_telemetry(telemetry)
-        if dev_info is not None:
+        if dev_info is not None and "sdi_to_ptp_offset" in dev_info:
             self.sdi_to_ptp_offset_gauge.set(dev_info["sdi_to_ptp_offset"])
         else:
             self.sdi_to_ptp_offset_gauge.set(-1)
@@ -86,11 +86,11 @@ class DecapDeviceMonitor(SignalDeviceMonitor):
         
     def refresh_gauge(self, telemetry):
         dev_info = self.find_channel_from_telemetry(telemetry)
-        if dev_info is not None:
+        if dev_info is not None and "flow_to_ptp_offset" in dev_info:
             self.flow_to_ptp_offset_prim_gauge.set(dev_info["flow_to_ptp_offset"]["primary"])
             self.flow_to_ptp_offset_sec_gauge.set(dev_info["flow_to_ptp_offset"]["secondary"])
         else:
-            self.sdi_to_ptp_offset_gauge.set(-1)
+            self.flow_to_ptp_offset_sec_gauge.set(-1)
 
 
 class FlowMonitor():
@@ -136,8 +136,8 @@ class FlowMonitor():
                         for flow in engine["flows"]:
                             if (self.isPrimary and flow["type"] == "primary") or (not self.isPrimary and flow["type"] == "secondary"):
                                 self.pkt_cnt_gauge.set(flow["pkt_cnt"])
-                                if self.seq_err_gauge is not None:
-                                    self.pkt_cnt_gauge.set(flow["sequence_error"])
+                                if self.seq_err_gauge is not None and "sequence_error" in flow:
+                                    self.seq_err_gauge.set(flow["sequence_error"])
 
 class AudioFlowMonitor(FlowMonitor):
     def __init__(self, channel, dev_type, essence, isPrimary, audio_index):
@@ -200,9 +200,8 @@ class TelemetryApi():
         for device in telemetry["devices"]:
             dev_type = FlowDir.RX if device["type"] == "encapsulator" else FlowDir.TX
             audio_index = 1
-            # TODO: Rely on channel number when 3.0 is officially released.  This will not work for 
-            # NMOS loads...
             channel_num = device["device"][0]
+            channel_num = channel_num if channel_num.isdigit() else string.ascii_lowercase.index(channel_num)
             
             for engine in device["engines"]:
                 essence = engine["essence"]
